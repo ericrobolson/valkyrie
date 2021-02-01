@@ -56,4 +56,8 @@
 (display "\ncomponents\n")
 (display (comp-phys))
 
+(define (test-list) '())
+
+
+
 
