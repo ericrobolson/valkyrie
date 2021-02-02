@@ -6,7 +6,7 @@ fn main() {
     println!("Press Ctrl+c to Exit");
     loop {
         print!("ymir> ");
-        io::stdout().flush();
+        io::stdout().flush().unwrap();
 
         // Do the reading
         let mut input = String::new();
@@ -43,6 +43,8 @@ pub fn eval(input: String) -> Result<String, String> {
     Ok(format!("{:?}", tokens))
 }
 
+const MUTABLE: &'static str = "mut";
+
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum Paren {
     Left,
@@ -64,15 +66,17 @@ pub enum Token {
     RParen,
     /// The specifier character ':'
     Specifier,
-    // A symbol specified like "'test-symbol".
+    /// A symbol specified like "'test-symbol".
     Symbol(String),
+    /// The mutable specifier 'mut'.
+    Mutable,
+    /// Identifier
+    Identifier(String),
 
     // TODO: implement
     Comment(String),
     Literal(Literal),
-    Identifier(String),
     Type(Box<Token>),
-    Mutable,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -86,6 +90,7 @@ pub struct LexErr {
 enum WorkingState {
     None,
     Symbol(String),
+    Identifier(String),
 }
 
 struct ParseResult {
@@ -100,6 +105,8 @@ fn parse_character(
     line_number: &mut usize,
     is_final_token: bool,
 ) -> Result<ParseResult, LexErr> {
+    // TODO: test all error handling.
+
     let mut new_state = state.clone();
 
     let mut token_to_add = None;
@@ -128,6 +135,14 @@ fn parse_character(
             token_to_add = Some(Token::Specifier);
         }
         '\'' => match state {
+            WorkingState::Identifier(_) => {
+                let line_number = *line_number;
+                let character_number = *character_number;
+
+                return Err(LexErr{
+                    line_number, character_number, message: "Found a symbol while parsing an identifier! `(test'symbol2')` should be `(test 'symbol2)`.".into()
+                });
+            }
             WorkingState::None => {
                 new_state = WorkingState::Symbol(String::new());
             }
@@ -136,18 +151,25 @@ fn parse_character(
                 let character_number = *character_number;
 
                 return Err(LexErr{
-                    line_number, character_number, message: "Found a symbol while parsing a previous symbol! E.g. `('symbol-1'symbol2')` should be `('symbol1 'symbol2)`.".into()
+                    line_number, character_number, message: "Found a symbol while parsing a previous symbol! `('symbol-1'symbol2')` should be `('symbol1 'symbol2)`.".into()
                 });
             }
         },
         _ => match state {
             WorkingState::None => {
-                todo!("Unhandled token: '{:?}'", token)
+                let mut identifier = String::new();
+                identifier.push(token);
+                new_state = WorkingState::Identifier(identifier);
             }
             WorkingState::Symbol(symbol) => {
                 let mut symbol = symbol.clone();
                 symbol.push(token);
                 new_state = WorkingState::Symbol(symbol);
+            }
+            WorkingState::Identifier(identifier) => {
+                let mut identifier = identifier.clone();
+                identifier.push(token);
+                new_state = WorkingState::Identifier(identifier);
             }
         },
     }
@@ -157,6 +179,30 @@ fn parse_character(
         WorkingState::Symbol(symbol) => {
             if terminated_symbol {
                 added_tokens.push(Token::Symbol(symbol.clone()));
+                WorkingState::None
+            } else {
+                new_state
+            }
+        }
+        WorkingState::Identifier(identifier) => {
+            if terminated_symbol {
+                if identifier.as_str() == MUTABLE {
+                    added_tokens.push(Token::Mutable);
+                } else if identifier.to_lowercase().as_str() == MUTABLE {
+                    let line_number = *line_number;
+                    let character_number = *character_number;
+
+                    return Err(LexErr {
+                        line_number,
+                        character_number,
+                        message:
+                            "Attempted to use '{:?}' as an identifier! 'mut' is a reserved keyword."
+                                .into(),
+                    });
+                } else {
+                    added_tokens.push(Token::Identifier(identifier.clone()));
+                }
+
                 WorkingState::None
             } else {
                 new_state
@@ -214,6 +260,36 @@ pub fn lex(program: String) -> Result<Vec<Token>, LexErr> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lex_identifier_not_a_literal() {
+        todo!("Test identifiers start with anything that isn't a string, a number, a bool, etc.");
+    }
+
+    #[test]
+    fn lex_mut_returns_ok() {
+        let (s, expected) = ("mut:", vec![Token::Mutable, Token::Specifier]);
+        let result = lex(s.into());
+        assert_eq!(true, result.is_ok());
+
+        let actual = result.unwrap();
+        assert_eq!(expected, actual);
+
+        let (s, expected) = (
+            "(mut:)",
+            vec![
+                Token::LParen,
+                Token::Mutable,
+                Token::Specifier,
+                Token::RParen,
+            ],
+        );
+        let result = lex(s.into());
+        assert_eq!(true, result.is_ok());
+
+        let actual = result.unwrap();
+        assert_eq!(expected, actual);
+    }
 
     #[test]
     fn lex_symbol_returns_ok() {
