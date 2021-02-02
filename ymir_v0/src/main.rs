@@ -60,6 +60,7 @@ pub enum Literal {
     Bool(bool),
     /// The integer type
     I32(i32),
+    /// The string type
     String(String),
 }
 
@@ -75,13 +76,12 @@ pub enum Token {
     Symbol(String),
     /// The mutable specifier 'mut'.
     Mutable,
-    /// Identifier
-    /// TODO: finish this up by adding tests for invalid types
-    Identifier(String),
-
-    // TODO: implement
-    Comment(String),
+    /// A literal type.
     Literal(Literal),
+    /// Identifier
+    Identifier(String),
+    // Comment. Starts with '/*' and ends with  '*/'
+    Comment(String),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -97,6 +97,7 @@ enum WorkingState {
     Symbol(String),
     Identifier(String),
     String(String),
+    Comment(String),
 }
 
 struct ParseResult {
@@ -127,6 +128,12 @@ fn parse_character(
                 s.push(c);
 
                 Some(WorkingState::String(s))
+            }
+            WorkingState::Comment(s) => {
+                let mut s = s.clone();
+                s.push(c);
+
+                Some(WorkingState::Comment(s))
             }
             _ => None,
         }
@@ -211,6 +218,7 @@ fn parse_character(
                         });
                     }
                     WorkingState::String(_) => {}
+                    WorkingState::Comment(_) => {}
                 },
             }
         }
@@ -232,7 +240,13 @@ fn parse_character(
             WorkingState::Identifier(identifier) => {
                 let mut identifier = identifier.clone();
                 identifier.push(token);
-                new_state = WorkingState::Identifier(identifier);
+
+                // If it's a comment, switch it. Otherwise leave as identifier.
+                if identifier.starts_with("/*") {
+                    new_state = WorkingState::Comment(identifier);
+                } else {
+                    new_state = WorkingState::Identifier(identifier);
+                }
             }
             WorkingState::String(string) => {
                 // Add character to string
@@ -248,6 +262,27 @@ fn parse_character(
                                 } else {
                                     // set new state;
                                     new_state = WorkingState::String(s);
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    None => {}
+                }
+            }
+            WorkingState::Comment(string) => {
+                // Add character to string
+                match add_to_string(token, state) {
+                    Some(s) => {
+                        match s {
+                            WorkingState::Comment(s) => {
+                                // Only end string if it's not an escaped end quote
+                                if s.ends_with("*/") {
+                                    token_to_add = Some(Token::Comment(string.clone()));
+                                    new_state = WorkingState::None;
+                                } else {
+                                    // set new state;
+                                    new_state = WorkingState::Comment(s);
                                 }
                             }
                             _ => {}
@@ -299,6 +334,20 @@ fn parse_character(
 
                 return Err(LexErr{
                     line_number, character_number, message: "Found an string that wasn\'t closed! `\"test string` should be `\"test string\"`.".into()
+                });
+            } else {
+                new_state
+            }
+        }
+        WorkingState::Comment(c) => {
+            if is_final_token {
+                let line_number = *line_number;
+                let character_number = *character_number;
+
+                println!("{:?}", c);
+
+                return Err(LexErr{
+                    line_number, character_number, message: "Found an comment that wasn\'t closed! `/* test comment ` should be `/* test comment */`.".into()
                 });
             } else {
                 new_state
