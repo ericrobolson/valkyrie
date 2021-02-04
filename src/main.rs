@@ -1,5 +1,5 @@
-use std::io::Write;
-use std::{collections::HashMap, io};
+use std::{collections::HashMap, io, rc::Rc};
+use std::{io::Write, num::ParseIntError};
 
 fn main() {
     let mut forth = ForthState::new(i16::MAX as usize);
@@ -12,9 +12,15 @@ fn main() {
         let mut input = String::new();
         match io::stdin().read_line(&mut input) {
             Ok(size) => match forth.eval_input(input) {
-                Ok(result) => {
-                    println!("OK -> STACK {:?}", forth.data_stack());
-                }
+                Ok(result) => match result {
+                    ForthReturn::Ok => {
+                        println!("OK -> STACK {:?}", forth.data_stack());
+                    }
+                    ForthReturn::Shutdown => {
+                        println!("OK: Shutting down...");
+                        return;
+                    }
+                },
                 Err(error) => {
                     println!("ERROR: {:?}", error);
                 }
@@ -33,6 +39,11 @@ pub enum ForthMode {
     Compiling,
 }
 
+pub enum ForthReturn {
+    Ok,
+    Shutdown,
+}
+
 /// TODO: type checking
 pub enum ForthType<'a> {
     Flag(bool),
@@ -47,10 +58,11 @@ pub enum ForthType<'a> {
     UN(&'a ForthType<'a>),
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum ForthErr {
     StackOverflow,
     StackUnderflow,
+    Parse(std::num::ParseIntError),
 }
 
 pub enum Word {
@@ -62,7 +74,17 @@ pub struct ForthState<'a> {
     data_stack: Vec<i32>,
     data_stack_capacity: usize,
     mode: ForthMode,
-    dictionary: HashMap<&'a str, Word>,
+    dictionary: HashMap<&'a str, Rc<Word>>,
+}
+
+macro_rules! set_primitive {
+    ($dictionary:ident : $word:expr => $execution:expr) => {
+        let action: Box<dyn Fn(&mut ForthState) -> Result<(), ForthErr>> = { Box::new($execution) };
+
+        $dictionary
+            .dictionary
+            .insert($word, Rc::new(Word::Builtin(action)));
+    };
 }
 
 impl<'a> ForthState<'a> {
@@ -80,25 +102,39 @@ impl<'a> ForthState<'a> {
     }
 
     fn set_primitives(&mut self) {
-        let action: Box<dyn Fn(&mut ForthState) -> Result<(), ForthErr>> = {
-            Box::new(|c| {
-                let n1 = c.data_stack.pop().ok_or(ForthErr::StackUnderflow).unwrap();
-                let n2 = c.data_stack.pop().ok_or(ForthErr::StackUnderflow).unwrap();
+        set_primitive!(self : "-" => |context| {
+            let n1 = context.data_stack.pop().ok_or(ForthErr::StackUnderflow)?;
+            let n2 = context.data_stack.pop().ok_or(ForthErr::StackUnderflow)?;
 
-                c.data_stack.push(n1 + n2);
+            context.data_stack.push(n1 - n2);
 
-                Ok(())
-            })
-        };
+            Ok(())
+        });
 
-        self.dictionary.insert("+", Word::Builtin(action));
+        set_primitive!(self : "+" => |context| {
+            let n1 = context.data_stack.pop().ok_or(ForthErr::StackUnderflow)?;
+            let n2 = context.data_stack.pop().ok_or(ForthErr::StackUnderflow)?;
+
+            context.data_stack.push(n1 + n2);
+
+            Ok(())
+        });
+
+        set_primitive!(self : "*" => |context| {
+            let n1 = context.data_stack.pop().ok_or(ForthErr::StackUnderflow)?;
+            let n2 = context.data_stack.pop().ok_or(ForthErr::StackUnderflow)?;
+
+            context.data_stack.push(n1 * n2);
+
+            Ok(())
+        });
     }
 
     pub fn data_stack(&self) -> &Vec<i32> {
         &self.data_stack
     }
 
-    pub fn eval_input(&mut self, line: String) -> Result<(), String> {
+    pub fn eval_input(&mut self, line: String) -> Result<ForthReturn, ForthErr> {
         // 3.4 The Forth text interpreter (https://forth-standard.org/standard/usage)
         // TODO: Upon start-up, a system shall be able to interpret, as described by 6.1.2050 QUIT, Forth source code received interactively from a user input device.
         // Such interactive systems usually furnish a "prompt" indicating that they have accepted a user request and acted on it. The implementation-defined Forth prompt should contain the word "OK" in some combination of upper or lower case.
@@ -107,64 +143,59 @@ impl<'a> ForthState<'a> {
 
         // a) Skip leading spaces and parse a name (see 3.4.1);
         for word_str in line.split_whitespace() {
-            // b) Search the dictionary name space (see 3.4.2).
-            let word = self.find_word(word_str);
+            match word_str {
+                "BYE" => {
+                    return Ok(ForthReturn::Shutdown);
+                }
+                _ => {
+                    // b) Search the dictionary name space (see 3.4.2).
+                    let word = match self.find_word(word_str) {
+                        Some(word) => word,
+                        None => {
+                            let i = self.convert_to_number(word_str)?;
 
-            match word {
-                Some(word) => {
-                    // If a definition name matching the string is found:
+                            Rc::new(Word::Literal(i))
+                        }
+                    };
+
                     match self.mode {
                         ForthMode::Interpreting => {
-                            // TODO: 1) if interpreting, perform the interpretation semantics of the definition (see 3.4.3.2), and continue at a).
-                            match word {
-                                Word::Builtin(builtin) => {
-                                    builtin(self); // TODO: resolve builtins.. Think we're getting closer but need to figure it out.
-                                }
-                            }
+                            self.run_word(word)?;
                         }
                         ForthMode::Compiling => {
-                            // TODO: 2) if compiling, perform the compilation semantics of the definition (see 3.4.3.3), and continue at a).
-                            todo!("Compiling?");
-                        }
-                    }
-                }
-                None => {
-                    // c) If a definition name matching the string is not found, attempt to convert the string to a number (see 3.4.1.3).
-                    match self.convert_to_number(word_str) {
-                        Ok(word) => {
-                            // If successful:
-                            match self.mode {
-                                ForthMode::Interpreting => {
-                                    // if interpreting, place the number on the data stack, and continue at a);
-                                    self.data_stack.push(word);
-                                }
-                                ForthMode::Compiling => {
-                                    // TODO: 2) if compiling, compile code that when executed will place the number on the stack (see 6.1.1780 LITERAL), and continue at a);
-                                    todo!("Compiling?");
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            // d)  If unsuccessful, an ambiguous condition exists (see 3.4.4).
-                            // Just return an err
-                            return Err(e);
+                            todo!("Compiling");
                         }
                     }
                 }
             }
         }
 
+        Ok(ForthReturn::Ok)
+    }
+
+    pub fn run_word(&mut self, word: Rc<Word>) -> Result<(), ForthErr> {
+        match *word {
+            Word::Builtin(ref built_in) => {
+                built_in(self)?;
+            }
+            Word::Literal(ref lit) => {
+                self.data_stack.push(*lit);
+            }
+        }
         Ok(())
     }
 
-    pub fn find_word(&self, word: &str) -> Option<&Word> {
-        self.dictionary.get(word)
+    pub fn find_word(&self, word: &str) -> Option<Rc<Word>> {
+        match self.dictionary.get(word) {
+            Some(word) => Some(word.clone()),
+            None => None,
+        }
     }
 
-    pub fn convert_to_number(&self, word: &str) -> Result<i32, String> {
+    pub fn convert_to_number(&self, word: &str) -> Result<i32, ForthErr> {
         match word.parse::<i32>() {
             Ok(i) => Ok(i),
-            Err(e) => Err(format_error(word, e)),
+            Err(e) => Err(ForthErr::Parse(e)),
         }
     }
 }
@@ -174,4 +205,12 @@ where
     E: std::fmt::Debug,
 {
     format!("In -> '{:?}' -> ERR '{:?}'", input, error)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_Plus() {
+        assert_eq!(true, false);
+    }
 }
