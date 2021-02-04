@@ -1,1 +1,0 @@
-Various bytecode assemblers for Valkyrie.

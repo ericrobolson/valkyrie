@@ -1,0 +1,31 @@
+#lang racket
+
+
+(define (built-in-commands)
+  (list
+   'BYE
+   'HELP
+   ))
+
+(define (built-in-help built-in)
+  (~a "'" (symbol->string built-in) "'"
+  (match built-in
+    ['BYE "Quit the program."]
+    ['HELP "Pops the stack and returns the defined help for the given word."]
+    [else (~a "The built-in '" built-in "' needs help to be defined.")])))
+
+(define (get-help)
+  (display "Enter in the command you'd like help on: ")
+  (built-in-help (string->symbol (read-line))))
+
+(define (input-loop)
+  (display "valk->")
+  (define command (read-line))
+  (cond [(string=? command "BYE") (display "quitting loop")]
+        [(string=? command "HELP" (get-help))                                 
+                                   ]
+        [else (displayln (~a "unknown command: '" command "'. Some builtins are: " (built-in-commands))) (input-loop)]))
+
+
+;; Now start FORTH!
+(input-loop)
