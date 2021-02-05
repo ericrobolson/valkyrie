@@ -6,6 +6,7 @@ pub enum StackErr {
 }
 
 /// Stack data structure.
+#[derive(Debug, Clone, PartialEq)]
 pub struct Stack<Data> {
     data: Vec<Data>,
     capacity: usize,

@@ -1,11 +1,13 @@
-use std::{collections::HashMap, io, rc::Rc};
-use std::{io::Write, num::ParseIntError};
+use std::io::Write;
+use std::{io, rc::Rc};
 
-use stack::{Stack, StackErr};
+mod dictionary;
+use dictionary::Dictionary;
+use stack::Stack;
 mod stack;
 
 fn main() {
-    let mut forth = ForthState::new(i16::MAX as usize);
+    let mut forth = ForthState::new(i16::MAX as usize, 666);
 
     loop {
         print!("valkyrie> ");
@@ -37,16 +39,7 @@ fn main() {
     }
 }
 
-macro_rules! builtin_word {
-    ($dictionary:ident : $word:expr => $execution:expr) => {
-        let action: Box<dyn Fn(&mut ForthState) -> Result<(), ForthErr>> = { Box::new($execution) };
-
-        $dictionary
-            .dictionary
-            .insert($word, Rc::new(Word::Builtin(action)));
-    };
-}
-
+#[derive(Debug, Clone, PartialEq)]
 pub enum ForthMode {
     Interpreting,
     Compiling,
@@ -58,25 +51,13 @@ pub enum ForthReturn {
     Shutdown,
 }
 
-/// TODO: type checking
-pub enum ForthType<'a> {
-    Flag(bool),
-    Char(char),
-    /// Signed number
-    N(i32),
-    /// Non-negative N
-    NPlus(i32),
-    /// Unsigned number
-    U(u32),
-    /// N | U
-    UN(&'a ForthType<'a>),
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum ForthErr {
     StackErr(stack::StackErr),
     DivideByZero,
     Parse(std::num::ParseIntError),
+    DictionaryErr(dictionary::DictionaryErr),
+    AccessedUndefinedAtAddr(usize),
 }
 
 impl From<stack::StackErr> for ForthErr {
@@ -91,7 +72,23 @@ impl From<std::num::ParseIntError> for ForthErr {
     }
 }
 
+impl From<dictionary::DictionaryErr> for ForthErr {
+    fn from(de: dictionary::DictionaryErr) -> Self {
+        Self::DictionaryErr(de)
+    }
+}
+
 pub type Procedure = Box<dyn Fn(&mut ForthState) -> Result<(), ForthErr>>;
+
+macro_rules! builtin_word {
+    ($context:ident : $word:expr => $execution:expr) => {
+        let action: Procedure = { Box::new($execution) };
+
+        $context
+            .dictionary
+            .insert($word, Rc::new(Word::Builtin(action)))?;
+    };
+}
 
 pub enum Word {
     Nothing,
@@ -102,19 +99,18 @@ pub enum Word {
     },
     Literal(i32),
 }
-
 pub struct ForthState<'a> {
     stack: Stack<i32>,
     mode: ForthMode,
-    dictionary: HashMap<&'a str, Rc<Word>>,
+    dictionary: Dictionary<&'a str, Rc<Word>>,
 }
 
 impl<'a> ForthState<'a> {
-    pub fn new(data_stack_capacity: usize) -> Self {
+    pub fn new(stack_capacity: usize, dictionary_capacity: usize) -> Self {
         let mut forth = Self {
-            stack: Stack::new(data_stack_capacity),
+            stack: Stack::new(stack_capacity),
             mode: ForthMode::Interpreting,
-            dictionary: HashMap::new(),
+            dictionary: Dictionary::new(dictionary_capacity),
         };
 
         forth.reset();
@@ -126,7 +122,7 @@ impl<'a> ForthState<'a> {
         self.dictionary.clear();
         self.stack.clear();
         self.mode = ForthMode::Interpreting;
-        self.set_primitives();
+        self.set_primitives().unwrap();
     }
 
     pub fn stack(&self) -> &[i32] {
@@ -207,13 +203,52 @@ impl<'a> ForthState<'a> {
         Ok(word.parse::<i32>()?)
     }
 
-    fn set_primitives(&mut self) {
+    fn set_primitives(&mut self) -> Result<(), ForthErr> {
         builtin_word!(self : "DOES>" => |context| {
             todo!();
         });
 
         builtin_word!(self : "CREATE" => |context| {
             todo!();
+        });
+
+        builtin_word!(self : "VARIABLE" => |context| {
+            todo!("https://forth-standard.org/standard/core/VARIABLE")
+        });
+
+        builtin_word!(self : "!" => |context| {
+            todo!("https://forth-standard.org/standard/core/Store")
+        });
+
+        builtin_word!(self : "@" => |context| {
+            // TODO: test
+            // https://forth-standard.org/standard/core/Fetch
+            let a_addr = context.stack.pop()?;
+            match  context.dictionary.get_from_addr(a_addr as usize) {
+                Some(value) => {
+                    match **value {
+                        Word::Literal(i) => {
+                            context.stack.push(i)?;
+                        },
+                        _ => {
+                            let value_type: String = match **value{
+                                Word::Nothing => "Nothing".into(),
+                                Word::Builtin(_) => "Builtin".into(),
+                                Word::Custom {..} => "Custom".into(),
+                                Word::Literal(lit) => format!("Literal: {:?}", lit),
+                            };
+
+                            todo!("Wrong type passed to put on stack! {:?}", value_type);
+                        }
+                    }
+
+                },
+                None => {
+                    return Err(ForthErr::AccessedUndefinedAtAddr(a_addr as usize));
+                }
+            }
+
+            Ok(())
         });
 
         builtin_word!(self : "-" => |context| {
@@ -256,6 +291,8 @@ impl<'a> ForthState<'a> {
             context.stack.push(n)?;
             Ok(())
         });
+
+        Ok(())
     }
 }
 
@@ -265,7 +302,7 @@ mod tests {
 
     #[test]
     fn test_div_divides() {
-        let mut f = ForthState::new(333);
+        let mut f = ForthState::new(333, 343);
         f.eval("4 7 /".into()).unwrap();
         assert_eq!(1, f.stack()[0]);
 
@@ -281,7 +318,7 @@ mod tests {
 
     #[test]
     fn test_mul_multiplies() {
-        let mut f = ForthState::new(333);
+        let mut f = ForthState::new(333, 343);
         f.eval("4 7 *".into()).unwrap();
         assert_eq!(28, f.stack()[0]);
 
@@ -291,7 +328,7 @@ mod tests {
 
     #[test]
     fn test_sub_subtracts() {
-        let mut f = ForthState::new(333);
+        let mut f = ForthState::new(333, 343);
         f.eval("1 2 -".into()).unwrap();
         assert_eq!(1, f.stack()[0]);
 
@@ -301,7 +338,7 @@ mod tests {
 
     #[test]
     fn test_plus_adds() {
-        let mut f = ForthState::new(333);
+        let mut f = ForthState::new(333, 343);
         f.eval("1 2 +".into()).unwrap();
         assert_eq!(3, f.stack()[0]);
 
@@ -311,7 +348,7 @@ mod tests {
 
     #[test]
     fn test_DUP_duplicates_top_of_stack() {
-        let mut f = ForthState::new(333);
+        let mut f = ForthState::new(333, 343);
         f.eval("1 DUP".into()).unwrap();
         assert_eq!(1, f.stack()[0]);
         assert_eq!(1, f.stack()[1]);
@@ -324,7 +361,7 @@ mod tests {
 
     #[test]
     fn variable() {
-        let mut f = ForthState::new(333);
+        let mut f = ForthState::new(333, 343);
 
         f.eval("variable balance 123 balance ! balance @".into())
             .unwrap();
