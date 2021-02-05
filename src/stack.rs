@@ -1,5 +1,3 @@
-pub type Data = i32;
-
 /// A list of errors a stack operation may return.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum StackErr {
@@ -8,12 +6,12 @@ pub enum StackErr {
 }
 
 /// Stack data structure.
-pub struct Stack {
+pub struct Stack<Data> {
     data: Vec<Data>,
     capacity: usize,
 }
 
-impl Stack {
+impl<Data> Stack<Data> {
     /// Creates a new stack with the given capacity.
     pub fn new(capacity: usize) -> Self {
         Self {
@@ -37,6 +35,11 @@ impl Stack {
         }
     }
 
+    /// Clears all values from the stack.
+    pub fn clear(&mut self) {
+        self.data.clear();
+    }
+
     /// Pops an item off the stack.
     pub fn pop(&mut self) -> Result<Data, StackErr> {
         match self.data.pop() {
@@ -53,7 +56,7 @@ mod tests {
     #[test]
     fn new_sets_capacity() {
         let cap = 30201;
-        let stack = Stack::new(cap);
+        let stack = Stack::<i32>::new(cap);
         assert_eq!(cap, stack.capacity);
         assert_eq!(true, stack.data.is_empty());
     }

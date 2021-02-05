@@ -37,7 +37,7 @@ fn main() {
     }
 }
 
-macro_rules! set_primitive {
+macro_rules! builtin_word {
     ($dictionary:ident : $word:expr => $execution:expr) => {
         let action: Box<dyn Fn(&mut ForthState) -> Result<(), ForthErr>> = { Box::new($execution) };
 
@@ -72,7 +72,7 @@ pub enum ForthType<'a> {
     UN(&'a ForthType<'a>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ForthErr {
     StackErr(stack::StackErr),
     DivideByZero,
@@ -94,12 +94,17 @@ impl From<std::num::ParseIntError> for ForthErr {
 pub type Procedure = Box<dyn Fn(&mut ForthState) -> Result<(), ForthErr>>;
 
 pub enum Word {
+    Nothing,
     Builtin(Procedure),
+    /// A custom, user defined word. If multiple words are chained together to make up this word, they are stored in the body and pushed to the call stack. The size of 13 is arbitrary, and open to change.
+    Custom {
+        body: [Rc<Word>; 13],
+    },
     Literal(i32),
 }
 
 pub struct ForthState<'a> {
-    stack: Stack,
+    stack: Stack<i32>,
     mode: ForthMode,
     dictionary: HashMap<&'a str, Rc<Word>>,
 }
@@ -112,12 +117,19 @@ impl<'a> ForthState<'a> {
             dictionary: HashMap::new(),
         };
 
-        forth.set_primitives();
+        forth.reset();
 
         forth
     }
 
-    pub fn stack(&self) -> &[stack::Data] {
+    pub fn reset(&mut self) {
+        self.dictionary.clear();
+        self.stack.clear();
+        self.mode = ForthMode::Interpreting;
+        self.set_primitives();
+    }
+
+    pub fn stack(&self) -> &[i32] {
         &self.stack.data()
     }
 
@@ -164,6 +176,22 @@ impl<'a> ForthState<'a> {
             Word::Literal(ref lit) => {
                 self.stack.push(*lit)?;
             }
+            Word::Custom { ref body } => {
+                // Execute all queued methods
+                for call in body.iter() {
+                    match **call {
+                        Word::Nothing => {}
+                        _ => {
+                            self.run_word(call.clone())?;
+                        }
+                    }
+                }
+
+                todo!()
+            }
+            Word::Nothing => {
+                // Do nothing
+            }
         }
         Ok(())
     }
@@ -180,15 +208,15 @@ impl<'a> ForthState<'a> {
     }
 
     fn set_primitives(&mut self) {
-        set_primitive!(self : "DOES>" => |context| {
+        builtin_word!(self : "DOES>" => |context| {
             todo!();
         });
 
-        set_primitive!(self : "CREATE" => |context| {
+        builtin_word!(self : "CREATE" => |context| {
             todo!();
         });
 
-        set_primitive!(self : "-" => |context| {
+        builtin_word!(self : "-" => |context| {
             let n1 = context.stack.pop()?;
             let n2 = context.stack.pop()?;
 
@@ -197,14 +225,32 @@ impl<'a> ForthState<'a> {
             Ok(())
         });
 
-        set_primitive!(self : "+" => |context| {
+        builtin_word!(self : "+" => |context| {
             let n1 = context.stack.pop()?;
             let n2 = context.stack.pop()?;
             context.stack.push(n1 + n2)?;
             Ok(())
         });
 
-        set_primitive!(self : "DUP" => |context |{
+        builtin_word!(self : "*" => |context| {
+            let n1 = context.stack.pop()?;
+            let n2 = context.stack.pop()?;
+            context.stack.push(n1 * n2)?;
+            Ok(())
+        });
+
+        builtin_word!(self : "/" => |context| {
+            let n1 = context.stack.pop()?;
+            let n2 = context.stack.pop()?;
+            if n2 == 0 {
+                return Err(ForthErr::DivideByZero);
+            }
+
+            context.stack.push(n1 / n2)?;
+            Ok(())
+        });
+
+        builtin_word!(self : "DUP" => |context |{
             let n = context.stack.pop()?;
             context.stack.push(n)?;
             context.stack.push(n)?;
@@ -216,6 +262,32 @@ impl<'a> ForthState<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_div_divides() {
+        let mut f = ForthState::new(333);
+        f.eval("4 7 /".into()).unwrap();
+        assert_eq!(1, f.stack()[0]);
+
+        f.reset();
+
+        f.eval("3 -9 /".into()).unwrap();
+        assert_eq!(-3, f.stack()[0]);
+
+        f.reset();
+
+        assert_eq!(ForthErr::DivideByZero, f.eval("0 -9 /".into()).unwrap_err());
+    }
+
+    #[test]
+    fn test_mul_multiplies() {
+        let mut f = ForthState::new(333);
+        f.eval("4 7 *".into()).unwrap();
+        assert_eq!(28, f.stack()[0]);
+
+        f.eval("-9 *".into()).unwrap();
+        assert_eq!(-252, f.stack()[0]);
+    }
 
     #[test]
     fn test_sub_subtracts() {
