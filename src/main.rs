@@ -1,6 +1,9 @@
 use std::{collections::HashMap, io, rc::Rc};
 use std::{io::Write, num::ParseIntError};
 
+use stack::{Stack, StackErr};
+mod stack;
+
 fn main() {
     let mut forth = ForthState::new(i16::MAX as usize);
 
@@ -11,10 +14,10 @@ fn main() {
         // Do the reading
         let mut input = String::new();
         match io::stdin().read_line(&mut input) {
-            Ok(size) => match forth.eval_input(input) {
+            Ok(size) => match forth.eval(input) {
                 Ok(result) => match result {
                     ForthReturn::Ok => {
-                        println!("OK -> STACK {:?}", forth.data_stack());
+                        println!("OK -> STACK {:?}", forth.stack());
                     }
                     ForthReturn::Shutdown => {
                         println!("OK: Shutting down...");
@@ -34,11 +37,22 @@ fn main() {
     }
 }
 
+macro_rules! set_primitive {
+    ($dictionary:ident : $word:expr => $execution:expr) => {
+        let action: Box<dyn Fn(&mut ForthState) -> Result<(), ForthErr>> = { Box::new($execution) };
+
+        $dictionary
+            .dictionary
+            .insert($word, Rc::new(Word::Builtin(action)));
+    };
+}
+
 pub enum ForthMode {
     Interpreting,
     Compiling,
 }
 
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum ForthReturn {
     Ok,
     Shutdown,
@@ -60,38 +74,40 @@ pub enum ForthType<'a> {
 
 #[derive(Debug, Clone)]
 pub enum ForthErr {
-    StackOverflow,
-    StackUnderflow,
+    StackErr(stack::StackErr),
+    DivideByZero,
     Parse(std::num::ParseIntError),
 }
 
+impl From<stack::StackErr> for ForthErr {
+    fn from(se: stack::StackErr) -> Self {
+        Self::StackErr(se)
+    }
+}
+
+impl From<std::num::ParseIntError> for ForthErr {
+    fn from(e: std::num::ParseIntError) -> Self {
+        Self::Parse(e)
+    }
+}
+
+pub type Procedure = Box<dyn Fn(&mut ForthState) -> Result<(), ForthErr>>;
+
 pub enum Word {
-    Builtin(Box<dyn Fn(&mut ForthState) -> Result<(), ForthErr>>),
+    Builtin(Procedure),
     Literal(i32),
 }
 
 pub struct ForthState<'a> {
-    data_stack: Vec<i32>,
-    data_stack_capacity: usize,
+    stack: Stack,
     mode: ForthMode,
     dictionary: HashMap<&'a str, Rc<Word>>,
-}
-
-macro_rules! set_primitive {
-    ($dictionary:ident : $word:expr => $execution:expr) => {
-        let action: Box<dyn Fn(&mut ForthState) -> Result<(), ForthErr>> = { Box::new($execution) };
-
-        $dictionary
-            .dictionary
-            .insert($word, Rc::new(Word::Builtin(action)));
-    };
 }
 
 impl<'a> ForthState<'a> {
     pub fn new(data_stack_capacity: usize) -> Self {
         let mut forth = Self {
-            data_stack_capacity,
-            data_stack: Vec::with_capacity(data_stack_capacity),
+            stack: Stack::new(data_stack_capacity),
             mode: ForthMode::Interpreting,
             dictionary: HashMap::new(),
         };
@@ -101,48 +117,15 @@ impl<'a> ForthState<'a> {
         forth
     }
 
-    fn set_primitives(&mut self) {
-        set_primitive!(self : "-" => |context| {
-            let n1 = context.data_stack.pop().ok_or(ForthErr::StackUnderflow)?;
-            let n2 = context.data_stack.pop().ok_or(ForthErr::StackUnderflow)?;
-
-            context.data_stack.push(n1 - n2);
-
-            Ok(())
-        });
-
-        set_primitive!(self : "+" => |context| {
-            let n1 = context.data_stack.pop().ok_or(ForthErr::StackUnderflow)?;
-            let n2 = context.data_stack.pop().ok_or(ForthErr::StackUnderflow)?;
-
-            context.data_stack.push(n1 + n2);
-
-            Ok(())
-        });
-
-        set_primitive!(self : "*" => |context| {
-            let n1 = context.data_stack.pop().ok_or(ForthErr::StackUnderflow)?;
-            let n2 = context.data_stack.pop().ok_or(ForthErr::StackUnderflow)?;
-
-            context.data_stack.push(n1 * n2);
-
-            Ok(())
-        });
+    pub fn stack(&self) -> &[stack::Data] {
+        &self.stack.data()
     }
 
-    pub fn data_stack(&self) -> &Vec<i32> {
-        &self.data_stack
-    }
-
-    pub fn eval_input(&mut self, line: String) -> Result<ForthReturn, ForthErr> {
-        // 3.4 The Forth text interpreter (https://forth-standard.org/standard/usage)
-        // TODO: Upon start-up, a system shall be able to interpret, as described by 6.1.2050 QUIT, Forth source code received interactively from a user input device.
-        // Such interactive systems usually furnish a "prompt" indicating that they have accepted a user request and acted on it. The implementation-defined Forth prompt should contain the word "OK" in some combination of upper or lower case.
-
-        // Text interpretation (see 6.1.1360 EVALUATE and 6.1.2050 QUIT) shall repeat the following steps until either the parse area is empty or an ambiguous condition exists:
-
+    pub fn eval(&mut self, line: String) -> Result<ForthReturn, ForthErr> {
         // a) Skip leading spaces and parse a name (see 3.4.1);
         for word_str in line.split_whitespace() {
+            // TODO: do an interrupt to check for messages from CPU
+
             match word_str {
                 "BYE" => {
                     return Ok(ForthReturn::Shutdown);
@@ -179,7 +162,7 @@ impl<'a> ForthState<'a> {
                 built_in(self)?;
             }
             Word::Literal(ref lit) => {
-                self.data_stack.push(*lit);
+                self.stack.push(*lit)?;
             }
         }
         Ok(())
@@ -193,24 +176,87 @@ impl<'a> ForthState<'a> {
     }
 
     pub fn convert_to_number(&self, word: &str) -> Result<i32, ForthErr> {
-        match word.parse::<i32>() {
-            Ok(i) => Ok(i),
-            Err(e) => Err(ForthErr::Parse(e)),
-        }
+        Ok(word.parse::<i32>()?)
     }
-}
 
-fn format_error<E>(input: &str, error: E) -> String
-where
-    E: std::fmt::Debug,
-{
-    format!("In -> '{:?}' -> ERR '{:?}'", input, error)
+    fn set_primitives(&mut self) {
+        set_primitive!(self : "DOES>" => |context| {
+            todo!();
+        });
+
+        set_primitive!(self : "CREATE" => |context| {
+            todo!();
+        });
+
+        set_primitive!(self : "-" => |context| {
+            let n1 = context.stack.pop()?;
+            let n2 = context.stack.pop()?;
+
+            context.stack.push(n1 - n2)?;
+
+            Ok(())
+        });
+
+        set_primitive!(self : "+" => |context| {
+            let n1 = context.stack.pop()?;
+            let n2 = context.stack.pop()?;
+            context.stack.push(n1 + n2)?;
+            Ok(())
+        });
+
+        set_primitive!(self : "DUP" => |context |{
+            let n = context.stack.pop()?;
+            context.stack.push(n)?;
+            context.stack.push(n)?;
+            Ok(())
+        });
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
-    fn test_Plus() {
+    fn test_sub_subtracts() {
+        let mut f = ForthState::new(333);
+        f.eval("1 2 -".into()).unwrap();
+        assert_eq!(1, f.stack()[0]);
+
+        f.eval("-9 -".into()).unwrap();
+        assert_eq!(-10, f.stack()[0]);
+    }
+
+    #[test]
+    fn test_plus_adds() {
+        let mut f = ForthState::new(333);
+        f.eval("1 2 +".into()).unwrap();
+        assert_eq!(3, f.stack()[0]);
+
+        f.eval("1 +".into()).unwrap();
+        assert_eq!(4, f.stack()[0]);
+    }
+
+    #[test]
+    fn test_DUP_duplicates_top_of_stack() {
+        let mut f = ForthState::new(333);
+        f.eval("1 DUP".into()).unwrap();
+        assert_eq!(1, f.stack()[0]);
+        assert_eq!(1, f.stack()[1]);
+    }
+
+    #[test]
+    fn test_bye_returns_exist() {
         assert_eq!(true, false);
+    }
+
+    #[test]
+    fn variable() {
+        let mut f = ForthState::new(333);
+
+        f.eval("variable balance 123 balance ! balance @".into())
+            .unwrap();
+
+        assert_eq!(f.stack()[0], 123);
     }
 }
