@@ -10,6 +10,7 @@ pub enum Mode {
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Return {
     Ok,
+    Yielding,
     Shutdown,
 }
 
@@ -53,7 +54,6 @@ macro_rules! builtin_word {
 }
 
 pub enum Word {
-    Addr(dictionary::Addr),
     Builtin(Procedure),
     /// A custom, user defined word. If multiple words are chained together to make up this word, they are stored in the body and pushed to the call stack. The size of 13 is arbitrary, and open to change.
     Custom {
@@ -65,7 +65,6 @@ pub enum Word {
 impl std::fmt::Debug for Word {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Word::Addr(addr) => f.write_str(&format!("ADDR: {:?}", addr)),
             Word::Builtin(_) => f.write_str(&format!("Builtin, can't deal")),
             Word::Custom { body } => f.write_str(&format!("Custom {:?}", body)),
             Word::Data(d) => f.write_str(&format!("Data: {:?}", d)),
@@ -89,6 +88,7 @@ enum Fsm {
 }
 
 impl Context {
+    /// Creates a new context for interpreting.
     pub fn new(stack_capacity: usize, dictionary_capacity: usize) -> Self {
         let mut forth = Self {
             fsm: Fsm::Execute,
@@ -102,6 +102,7 @@ impl Context {
         forth
     }
 
+    /// Resets the context to a pristine state.
     pub fn reset(&mut self) {
         self.fsm = Fsm::Execute;
         self.dictionary.clear();
@@ -110,23 +111,39 @@ impl Context {
         self.set_primitives().unwrap();
     }
 
-    pub fn stack(&self) -> &[i32] {
+    /// Pushes a new value onto the stack.
+    pub fn push(&mut self, data: Datum) -> Result<(), stack::StackErr> {
+        self.stack.push(data)
+    }
+
+    /// Pops a value off the stack.
+    pub fn pop(&mut self) -> Result<Datum, stack::StackErr> {
+        self.stack.pop()
+    }
+
+    /// Returns a read-only handle to the stack.
+    pub fn stack(&self) -> &[Datum] {
         &self.stack.data()
     }
 
+    /// Returns a read-only handle to the dictionary.
+    pub fn dictionary(&self) -> &[(Option<Id>, Rc<Word>)] {
+        self.dictionary.dictionary()
+    }
+
+    /// Evaluates a line of code. By default, tokens are separated by whitespace.
     pub fn eval(&mut self, line: String) -> Result<Return, ContextErr> {
         // a) Skip leading spaces and parse a name (see 3.4.1);
-
-        // TODO: convert &strs to use bytes somehow
-
         for word_str in line.split_whitespace() {
-            // TODO: do an interrupt to check for messages from CPU
-
             match self.fsm {
                 Fsm::Execute => {
                     match word_str {
                         "BYE" => {
                             return Ok(Return::Shutdown);
+                        }
+                        "YIELD" => {
+                            todo!("There's a bug where yielding doesn't resume. It just chops off other stuff.");
+                            return Ok(Return::Yielding);
                         }
                         "VARIABLE" => {
                             // https://forth-standard.org/standard/core/VARIABLE
@@ -173,7 +190,7 @@ impl Context {
         Ok(Return::Ok)
     }
 
-    pub fn run_word(&mut self, word: Rc<Word>) -> Result<(), ContextErr> {
+    fn run_word(&mut self, word: Rc<Word>) -> Result<(), ContextErr> {
         match *word {
             Word::Builtin(ref built_in) => {
                 built_in(self)?;
@@ -193,27 +210,19 @@ impl Context {
 
                 todo!()
             }
-
-            Word::Addr(addr) => match self.dictionary.get_from_addr(addr) {
-                Some(word) => {
-                    let word = word.clone();
-                    self.run_word(word)?;
-                }
-                None => {}
-            },
         }
 
         Ok(())
     }
 
-    pub fn find_word(&self, word: &str) -> Option<Rc<Word>> {
+    fn find_word(&self, word: &str) -> Option<Rc<Word>> {
         match self.dictionary.get(word.into()) {
             Some(word) => Some(word.clone()),
             None => None,
         }
     }
 
-    pub fn convert_to_number(&self, word: &str) -> Result<Datum, ContextErr> {
+    fn convert_to_number(&self, word: &str) -> Result<Datum, ContextErr> {
         Ok(word.parse::<Datum>()?)
     }
 
@@ -246,10 +255,9 @@ impl Context {
             // TODO: test
             // https://forth-standard.org/standard/core/Fetch
             let a_addr = context.stack.pop()?;
-            println!("ADDR: {:?}, usize: {:?}", a_addr, a_addr as usize);
-            match  context.dictionary.get_from_addr(a_addr as usize) {
+            let a_addr = a_addr as usize;
+            match  context.dictionary.get_from_addr(a_addr) {
                 Some(value) => {
-                    println!("F {:?}", value);
                     match **value {
                         Word::Data(i) => {
                             context.stack.push(i)?;
@@ -259,7 +267,6 @@ impl Context {
                                 Word::Builtin(_)=>"Builtin".into(),
                                 Word::Custom{..}=>"Custom".into(),
                                 Word::Data(lit)=>format!("Literal: {:?}",lit),
-                                Word::Addr(addr) => format!("addr{:?}", addr)
                             };
 
                             todo!("Wrong type passed to put on stack! {:?}", value_type);
@@ -268,7 +275,7 @@ impl Context {
 
                 },
                 None => {
-                    return Err(ContextErr::AccessedUndefinedAtAddr(a_addr as usize));
+                    return Err(ContextErr::AccessedUndefinedAtAddr(a_addr));
                 }
             }
 

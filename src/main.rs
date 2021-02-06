@@ -25,6 +25,9 @@ fn main() {
                         println!("OK: Shutting down...");
                         return;
                     }
+                    context::Return::Yielding => {
+                        println!("Doing a yield.");
+                    }
                 },
                 Err(error) => {
                     println!("ERROR: {:?}", error);
