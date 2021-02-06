@@ -10,5 +10,16 @@ Used to stub out an engine.
 
 
 # Building
-Windows - should be good to go
-Android - `cargo install cargo-apk` to build, run, debug android apps. `cargo apk run` to execute on real or connected devices.
+## Windows
+* Should work out of the box
+* Use `cargo run` to launch
+
+## Android 
+* `cargo install cargo-apk` to build, run, debug android apps. 
+* `cargo apk run` to execute on real or connected devices.
+
+## WASM
+* TODO: add in support
+
+## OpenXR
+* TODO: add in support
