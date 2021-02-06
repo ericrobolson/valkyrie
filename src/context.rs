@@ -53,17 +53,31 @@ macro_rules! builtin_word {
 }
 
 pub enum Word {
-    Nothing,
     Addr(dictionary::Addr),
     Builtin(Procedure),
     /// A custom, user defined word. If multiple words are chained together to make up this word, they are stored in the body and pushed to the call stack. The size of 13 is arbitrary, and open to change.
     Custom {
         body: [Rc<Word>; 13],
     },
-    Literal(i32),
+    Data(Datum),
 }
+
+impl std::fmt::Debug for Word {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Word::Addr(addr) => f.write_str(&format!("ADDR: {:?}", addr)),
+            Word::Builtin(_) => f.write_str(&format!("Builtin, can't deal")),
+            Word::Custom { body } => f.write_str(&format!("Custom {:?}", body)),
+            Word::Data(d) => f.write_str(&format!("Data: {:?}", d)),
+        }
+    }
+}
+
+/// The basic types that may be put on the stack
+pub type Datum = i32;
+
 pub struct Context {
-    stack: stack::Stack<i32>,
+    stack: stack::Stack<Datum>,
     mode: Mode,
     dictionary: dictionary::Dictionary<Id, Rc<Word>>,
     fsm: Fsm,
@@ -126,7 +140,7 @@ impl Context {
                                 None => {
                                     let i = self.convert_to_number(word_str)?;
 
-                                    Rc::new(Word::Literal(i))
+                                    Rc::new(Word::Data(i))
                                 }
                             };
 
@@ -143,9 +157,12 @@ impl Context {
                 }
                 Fsm::GetVariable => {
                     // add a value to the dict without a key.
-                    let addr = self.dictionary.insert(None, Rc::new(Word::Nothing))?;
+                    let addr = self
+                        .dictionary
+                        .insert(None, Rc::new(Word::Data(Datum::default())))?;
+
                     self.dictionary
-                        .insert(Some(word_str.into()), Rc::new(Word::Addr(addr)))?;
+                        .insert(Some(word_str.into()), Rc::new(Word::Data(addr as Datum)))?;
 
                     // Switch back to execution mode
                     self.fsm = Fsm::Execute;
@@ -161,14 +178,13 @@ impl Context {
             Word::Builtin(ref built_in) => {
                 built_in(self)?;
             }
-            Word::Literal(ref lit) => {
+            Word::Data(ref lit) => {
                 self.stack.push(*lit)?;
             }
             Word::Custom { ref body } => {
                 // Execute all queued methods
                 for call in body.iter() {
                     match **call {
-                        Word::Nothing => {}
                         _ => {
                             self.run_word(call.clone())?;
                         }
@@ -177,18 +193,16 @@ impl Context {
 
                 todo!()
             }
-            Word::Nothing => {
-                // Do nothing
-            }
+
             Word::Addr(addr) => match self.dictionary.get_from_addr(addr) {
                 Some(word) => {
-                    todo!()
+                    let word = word.clone();
+                    self.run_word(word)?;
                 }
-                None => {
-                    todo!()
-                }
+                None => {}
             },
         }
+
         Ok(())
     }
 
@@ -199,8 +213,8 @@ impl Context {
         }
     }
 
-    pub fn convert_to_number(&self, word: &str) -> Result<i32, ContextErr> {
-        Ok(word.parse::<i32>()?)
+    pub fn convert_to_number(&self, word: &str) -> Result<Datum, ContextErr> {
+        Ok(word.parse::<Datum>()?)
     }
 
     fn set_primitives(&mut self) -> Result<(), ContextErr> {
@@ -213,13 +227,17 @@ impl Context {
         });
 
         builtin_word!(self : "!" => |context| {
-            todo!("https://forth-standard.org/standard/core/Store")
+            let addr = context.stack.pop()?;
+            let x = context.stack.pop()?;
+
+            context.dictionary.set_from_addr(addr as usize, Rc::new(Word::Data(x)))?;
+
+            Ok(())
         });
 
-        builtin_word!(self : "MEM-DICT" => |context| {
-            todo!("make something that displays the entirety of the dictionary.");
-            for kv in context.dictionary.dictionary(){
-                //println!("DICT: {:?}", kv);
+        builtin_word!(self : "DICT" => |context| {
+            for (i, kv) in context.dictionary.dictionary().iter().enumerate(){
+                println!("{:?}: DICT: {:?}",i, kv);
             }
             Ok(())
         });
@@ -228,18 +246,19 @@ impl Context {
             // TODO: test
             // https://forth-standard.org/standard/core/Fetch
             let a_addr = context.stack.pop()?;
+            println!("ADDR: {:?}, usize: {:?}", a_addr, a_addr as usize);
             match  context.dictionary.get_from_addr(a_addr as usize) {
                 Some(value) => {
+                    println!("F {:?}", value);
                     match **value {
-                        Word::Literal(i) => {
+                        Word::Data(i) => {
                             context.stack.push(i)?;
                         },
                         _ => {
                             let value_type: String = match **value{
-                                Word::Nothing=>"Nothing".into(),
                                 Word::Builtin(_)=>"Builtin".into(),
                                 Word::Custom{..}=>"Custom".into(),
-                                Word::Literal(lit)=>format!("Literal: {:?}",lit),
+                                Word::Data(lit)=>format!("Literal: {:?}",lit),
                                 Word::Addr(addr) => format!("addr{:?}", addr)
                             };
 

@@ -1,6 +1,7 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum DictionaryErr {
     Overflow,
+    UndefinedAccess,
 }
 
 pub type Addr = usize;
@@ -78,6 +79,15 @@ where
         }
 
         None
+    }
+
+    pub fn set_from_addr(&mut self, addr: usize, value: Value) -> Result<(), DictionaryErr> {
+        if addr < self.data.len() {
+            self.data[addr].1 = value;
+            return Ok(());
+        }
+
+        Err(DictionaryErr::UndefinedAccess)
     }
 
     pub fn get_from_addr(&self, addr: usize) -> Option<&Value> {
