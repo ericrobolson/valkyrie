@@ -1,5 +1,6 @@
 /// This file is for running binaries.
+mod program;
 
 fn main() {
-    valkyrie_lib::main();
+    program::program();
 }
