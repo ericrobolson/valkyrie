@@ -1,3 +1,5 @@
+mod gfx;
+
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -5,6 +7,8 @@ use winit::{
 };
 
 pub fn program() {
+    // As this gets more complicated, start porting the pieces to the PIL (platform independence layer).
+
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
 

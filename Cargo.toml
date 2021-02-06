@@ -15,8 +15,10 @@ name = "valkyrie_bin"
 path = "src/main.rs"
 
 [dependencies]
+core = {path = "core"}
+platform_independence_layer = {path = "platform_independence_layer"}
+gl = "0.14.0"
 winit = "0.24.0"
-
 
 # Android specific builds
 [target.'cfg(target_os = "android")'.dependencies]
