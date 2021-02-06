@@ -138,14 +138,14 @@ impl Context {
             match self.fsm {
                 Fsm::Execute => {
                     match word_str {
-                        "BYE" => {
+                        "bye" => {
                             return Ok(Return::Shutdown);
                         }
-                        "YIELD" => {
+                        "yield" => {
                             todo!("There's a bug where yielding doesn't resume. It just chops off other stuff.");
                             return Ok(Return::Yielding);
                         }
-                        "VARIABLE" => {
+                        "var" => {
                             // https://forth-standard.org/standard/core/VARIABLE
                             // Idea: if you ever need to extend this, consider a FSM to wait for another input
                             self.fsm = Fsm::GetVariable;
@@ -227,12 +227,25 @@ impl Context {
     }
 
     fn set_primitives(&mut self) -> Result<(), ContextErr> {
-        builtin_word!(self : "DOES>" => |context| {
+        builtin_word!(self : "does>" => |context| {
             todo!();
         });
 
-        builtin_word!(self : "CREATE" => |context| {
+        builtin_word!(self : "create" => |context| {
             todo!();
+        });
+
+        builtin_word!(self : "drop" => |context| {
+            context.stack.pop()?;
+            Ok(())
+        });
+
+        builtin_word!(self : "print" => |context| {
+            // Print a value
+            let val = context.stack.pop()?;
+            println!(":: {:?}", val);
+            context.stack.push(val)?;
+            Ok(())
         });
 
         builtin_word!(self : "!" => |context| {
@@ -244,7 +257,7 @@ impl Context {
             Ok(())
         });
 
-        builtin_word!(self : "DICT" => |context| {
+        builtin_word!(self : "dict" => |context| {
             for (i, kv) in context.dictionary.dictionary().iter().enumerate(){
                 println!("{:?}: DICT: {:?}",i, kv);
             }
@@ -257,19 +270,24 @@ impl Context {
             let a_addr = context.stack.pop()?;
             let a_addr = a_addr as usize;
             match  context.dictionary.get_from_addr(a_addr) {
-                Some(value) => {
+                Some((key, value)) => {
                     match **value {
                         Word::Data(i) => {
                             context.stack.push(i)?;
                         },
                         _ => {
-                            let value_type: String = match **value{
-                                Word::Builtin(_)=>"Builtin".into(),
-                                Word::Custom{..}=>"Custom".into(),
-                                Word::Data(lit)=>format!("Literal: {:?}",lit),
-                            };
+                            let mut found = false;
 
-                            todo!("Wrong type passed to put on stack! {:?}", value_type);
+                            if let Some(key) = key {
+                                if let Some(addr) = context.dictionary.get_addr(*key){
+                                    found = true;
+                                    context.stack.push(addr as Datum)?;
+                                }
+                            }
+
+                            if !found{
+                                todo!("Attempted to get key that didn't exist.");
+                            }
                         }
                     }
 
@@ -316,7 +334,7 @@ impl Context {
             Ok(())
         });
 
-        builtin_word!(self : "DUP" => |context |{
+        builtin_word!(self : "dup" => |context |{
             let n = context.stack.pop()?;
             context.stack.push(n)?;
             context.stack.push(n)?;

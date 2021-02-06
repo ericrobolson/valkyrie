@@ -90,10 +90,10 @@ where
         Err(DictionaryErr::UndefinedAccess)
     }
 
-    pub fn get_from_addr(&self, addr: usize) -> Option<&Value> {
+    pub fn get_from_addr(&self, addr: usize) -> Option<&(Option<Key>, Value)> {
         // TODO: test
         if addr < self.data.len() {
-            return Some(&self.data[addr].1);
+            return Some(&self.data[addr]);
         }
 
         None
