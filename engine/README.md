@@ -5,3 +5,7 @@ Required:
 
 Execute build.bat to launch cygwin + execute makefile
 Start 'valkyrie.exe' to launch
+
+
+Structure:
+`deps/` - list of all outside dependencies. Primarily SDL2.
