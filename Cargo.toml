@@ -11,17 +11,14 @@ crate-type = ["lib", "cdylib"]
 path = "src/lib.rs"
 
 [[bin]]
-name = "valkyrie_executable"
+name = "valkyrie_bin"
 path = "src/main.rs"
 
 [dependencies]
-# internal dependencies
 core = {path = "core"}
-pil = {path = "pil"}
-# external dependencies
+platform_independence_layer = {path = "platform_independence_layer"}
 gl = "0.14.0"
-sdl2 = {git="https://github.com/ericrobolson/rust-sdl2", features=["bundled"]}
-
+winit = "0.24.0"
 
 # Android specific builds
 [target.'cfg(target_os = "android")'.dependencies]
