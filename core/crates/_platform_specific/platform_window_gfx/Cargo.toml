@@ -1,5 +1,5 @@
 [package]
-name = "window_gfx"
+name = "platform_window_gfx"
 version = "0.1.0"
 authors = ["Eric Olson <eric.rob.olson@gmail.com>"]
 edition = "2018"
@@ -12,4 +12,6 @@ winit = "0.24"
 wgpu = "0.7.0"
 gl = "0.14"
 
-wingfx = {path = "../wingfx"}
+# core deps
+window = {path = "../../window"}
+renderer = {path = "../../renderer"}

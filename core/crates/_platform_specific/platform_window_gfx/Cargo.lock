@@ -1147,6 +1147,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3831453b3449ceb48b6d9c7ad7c96d5ea673e9b470a1dc578c2ce6521230884c"
 
 [[package]]
+name = "platform_window_gfx"
+version = "0.1.0"
+dependencies = [
+ "gl",
+ "glutin",
+ "renderer",
+ "wgpu",
+ "window",
+ "winit",
+]
+
+[[package]]
 name = "proc-macro-crate"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1193,6 +1205,10 @@ name = "redox_syscall"
 version = "0.1.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41cc0f7e4d5d4544e8861606a285bb08d3e70712ccc7d2b84d7c0ccfaf4b05ce"
+
+[[package]]
+name = "renderer"
+version = "0.1.0"
 
 [[package]]
 name = "rusttype"
@@ -1682,14 +1698,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
-name = "window_gfx"
+name = "window"
 version = "0.1.0"
-dependencies = [
- "gl",
- "glutin",
- "wgpu",
- "winit",
-]
 
 [[package]]
 name = "winit"

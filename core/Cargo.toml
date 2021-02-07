@@ -13,3 +13,6 @@ renderer = {path="crates/renderer"}
 window = {path="crates/window"}
 
 # Platform specific dependencies
+platform_file_io = {path="crates/_platform_specific/platform_file_io"}
+platform_threading = {path="crates/_platform_specific/platform_threading"}
+platform_window_gfx = {path="crates/_platform_specific/platform_window_gfx"}

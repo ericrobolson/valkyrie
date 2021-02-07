@@ -194,8 +194,13 @@ checksum = "a2df960f5d869b2dd8532793fde43eb5427cceb126c929747a26823ab0eeb536"
 name = "core"
 version = "0.1.0"
 dependencies = [
- "rendering",
- "windowing",
+ "file_io",
+ "platform_file_io",
+ "platform_threading",
+ "platform_window_gfx",
+ "renderer",
+ "threading",
+ "window",
 ]
 
 [[package]]
@@ -357,6 +362,10 @@ name = "downcast-rs"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
+
+[[package]]
+name = "file_io"
+version = "0.1.0"
 
 [[package]]
 name = "fixedbitset"
@@ -1155,6 +1164,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3831453b3449ceb48b6d9c7ad7c96d5ea673e9b470a1dc578c2ce6521230884c"
 
 [[package]]
+name = "platform_file_io"
+version = "0.1.0"
+
+[[package]]
+name = "platform_threading"
+version = "0.1.0"
+
+[[package]]
+name = "platform_window_gfx"
+version = "0.1.0"
+dependencies = [
+ "gl",
+ "glutin",
+ "renderer",
+ "wgpu",
+ "window",
+ "winit",
+]
+
+[[package]]
 name = "proc-macro-crate"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1203,12 +1232,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41cc0f7e4d5d4544e8861606a285bb08d3e70712ccc7d2b84d7c0ccfaf4b05ce"
 
 [[package]]
-name = "rendering"
+name = "renderer"
 version = "0.1.0"
-dependencies = [
- "gl",
- "wgpu",
-]
 
 [[package]]
 name = "rusttype"
@@ -1367,6 +1392,10 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "threading"
+version = "0.1.0"
 
 [[package]]
 name = "thunderdome"
@@ -1705,12 +1734,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
-name = "windowing"
+name = "window"
 version = "0.1.0"
-dependencies = [
- "glutin",
- "winit",
-]
 
 [[package]]
 name = "winit"
