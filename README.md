@@ -16,7 +16,6 @@ Used to stub out an engine.
 * Use `cargo run` to launch
 
 ## Android 
-* !! Right now Android is not working. Ecosystem is too poor at this point in time. 
 * Ensure Android Studio is set up. Ensure `ANDROID_SDK_ROOT`, `ANDROID_NDK_ROOT` env vars are set. 
 * Ensure you have a env var for `keytool` set to `\Android Studio\jre\bin\keytool.exe` if you're getting `Error: Command keytool not found.`.
 * Reference `https://crates.io/crates/cargo-apk` for issues + build targets.
