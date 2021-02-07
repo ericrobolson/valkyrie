@@ -1,0 +1,60 @@
+#lang racket
+
+;; Implementation for a Forth 2012 Standard compiler to any target language.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 2 Terms, notation, and references (https://forth-standard.org/standard/notation)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; The phrase "See:" is used throughout this standard to direct the reader to other sections of the standard that have a direct bearing on the current
+; section.
+;
+; In this standard, "shall" states a requirement on a system or program; conversely, "shall not" is a prohibition; "need not" means "is not required to";
+; "should" describes a recommendation of the standard; and "may", depending on context, means "is allowed to" or "might happen".
+
+
+(define (terms)
+  (list 
+   'address-unit
+   ; Depending on context, either
+   ; 1) the units into which a Forth address space is divided for the purposes of locating data objects such as characters and variables;
+   ; 2) the physical memory storage elements corresponding to those units;
+   ; 3) the contents of such a memory storage element; or
+   ; 4) the units in which the length of a region of memory is expressed.
+   
+   'aligned
+   ; Divisible by a type-dependent power of 2 (typically used as "<type>-aligned address" or "<type>-aligned value").
+   
+   'aligned-address
+   ; The address of a memory location at which a character, cell, cell pair, or double-cell integer can be accessed.
+   
+   'ambiguous-condition
+   ; A circumstance for which this standard does not prescribe a specific behavior.
+   ; See section 4.1.2 Ambiguous conditions for a list of such circumstances and 3.4.4 Possible actions on an ambiguous condition.
+   
+   'cell
+   ; The primary unit of information in the architecture of a Forth system.
+   
+   'cell-pair
+   ; Two cells that are treated as a single unit
+   
+   'character
+   ; Depending on context, either
+   ; 1) a storage unit capable of holding a character; or
+   ; 2) a member of a character set.
+
+   'character-aligned-address
+   ; The address of a memory location at which a character can be accessed.
+
+   'character-string
+   ; Data space that is associated with a sequence of consecutive character-aligned addresses. Character strings usually contain text. Unless otherwise
+   ; indicated, the term "string" means "character string".
+
+   'code-space
+   ; The logical area of the dictionary in which word semantics are implemented.
+
+
+
+   
+   ;;
+   )
+  )
