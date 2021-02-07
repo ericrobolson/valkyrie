@@ -8,7 +8,5 @@ edition = "2018"
 
 [dependencies]
 valloc = {path="crates/valloc"}
-vaudio = {path="crates/vaudio"}
 vmath = {path="crates/vmath"}
-vphysics = {path="crates/vphysics"}
 vrenderer = {path="crates/vrenderer"}
