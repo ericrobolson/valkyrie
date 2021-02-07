@@ -1,0 +1,12 @@
+#lang racket
+
+;; A simple 'compiles to c' program
+
+(define (nullptr type variable)
+         (list type '* variable '= 'NULL))
+
+(define (main argc args)
+  (nullptr 'SDL_Window 'window))
+
+
+(main 'blah 'la)
