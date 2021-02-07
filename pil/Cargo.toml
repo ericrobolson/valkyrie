@@ -1,5 +1,5 @@
 [package]
-name = "platform_independence_layer"
+name = "pil"
 version = "0.1.0"
 authors = ["Eric Olson <eric.rob.olson@gmail.com>"]
 edition = "2018"
