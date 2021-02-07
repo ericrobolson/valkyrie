@@ -1,0 +1,4 @@
+#lang racket
+(provide SDL_Init)
+
+(define (SDL_Init) "SDL_Init(SDL_INIT_VIDEO) < 0"

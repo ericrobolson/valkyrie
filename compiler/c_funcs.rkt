@@ -8,6 +8,7 @@
 (provide const)
 (provide main)
 (provide def)
+(provide def-mut)
 
 (define (preprocess val)
   (~a "#define " val))
@@ -19,10 +20,9 @@
 (define-syntax-rule
   (const id val)
   ; use `begin` to define a value to be used for later. This enables type checking before compilation.
-  (begin
-   (define (id) val)
+  
    ; Now output the c code
-   (~a "const " (get-type val) " " 'id " = " val ";"))   )
+   (~a "const " (get-type val) " " 'id " = " val ";"))   
   
 ;; Creates a new value
 (define-syntax-rule
@@ -32,18 +32,23 @@
     ((null? val) (~a 'type " *" 'id " = NULL;"))
     (else (~a 'type " " 'id " = " val ";"))))
 
+(define-syntax-rule
+  (def-mut (type id) val)
+    ; Now output the c code
+  (cond
+    ((null? val) (~a 'type " *" 'id " = NULL;"))
+    (else (~a 'type " " 'id " = " val ";"))))
+
 
 ;; Define a function
-(define-syntax-rule
+(define 
   (main body)
   
-  (~a
-   "int main(int argc, char* args[]){
-"
+  (list
+   
+   "int main(int argc, char* args[]){\n"
       body
-      "
-return 0;
-}"
+      "\nreturn 0\n;}\n"
       ))
 
 
