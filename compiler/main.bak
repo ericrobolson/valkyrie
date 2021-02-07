@@ -1,7 +1,0 @@
-#lang racket
-(require "c_funcs.rkt")
-
-
-(preprocess "SDL_MAIN_HANDLED")
-(cinclude "<stdio.h>")
-(cinclude "SDL.H")
