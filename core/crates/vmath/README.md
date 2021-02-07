@@ -1,1 +1,0 @@
-Core math library.

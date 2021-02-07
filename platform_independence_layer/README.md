@@ -1,1 +1,0 @@
-Trait implementations for the platform specific functionality found in `core`.
