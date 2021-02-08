@@ -1,5 +1,5 @@
 pub use renderer::Renderer;
-pub use window::Window;
+pub use window::{Window, WindowInput};
 
 pub enum BackendType {
     /// Utilizes OpenGL as the backend
@@ -37,7 +37,8 @@ impl WinGfxBuilder {
         self
     }
 
-    pub fn build(&self) -> Result<(Box<dyn Window>, Box<dyn Renderer>), WinGfxBuildErr> {
+    pub fn build<T>(&self) -> Result<(Box<dyn Window<T>>, Box<dyn Renderer>), WinGfxBuildErr> {
+        platform_window_gfx::wingfx_glutin::GlutinWindow::new();
         todo!()
     }
 }

@@ -10,7 +10,7 @@ edition = "2018"
 glutin = "0.26"
 winit = "0.24"
 wgpu = "0.7.0"
-gl = "0.14"
+glow = "0.7.2"
 
 # core deps
 window = {path = "../../window"}
