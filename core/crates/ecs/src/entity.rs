@@ -1,9 +1,11 @@
+use std::fmt::Debug;
+
 // Based on http://bitsquid.blogspot.com/2014/08/building-data-oriented-entity-system.html
 
 pub type EntityId = u32;
 pub type Generation = u8;
 
-pub const MAX_ENTITIES: usize = (ENTITY_INDEX_MASK >> ENTITY_GENERATION_BITS) as usize;
+pub const MAX_ENTITIES: usize = (EntityId::MAX >> ENTITY_GENERATION_BITS) as usize;
 
 const ENTITY_GENERATION_BITS: usize = 8;
 const ENTITY_INDEX_BITS: usize = 32 - ENTITY_GENERATION_BITS;
@@ -13,15 +15,27 @@ const ENTITY_INDEX_MASK: EntityId =
 const ENTITY_GENERATION_MASK: EntityId = !ENTITY_INDEX_MASK;
 
 /// An entity in the system.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct Entity {
     entity: EntityId,
+}
+
+impl Debug for Entity {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(
+            fmt,
+            "(id: {}, generation: {})",
+            self.id(),
+            self.generation()
+        )
+    }
 }
 
 impl Entity {
     /// Creates a new entity.
     pub fn new(id: EntityId, generation: Generation) -> Self {
         let generation = generation as EntityId;
+
         let id = id << ENTITY_GENERATION_BITS;
 
         Self {
@@ -43,6 +57,11 @@ impl Entity {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn entity_max_entities_returns_expected() {
+        assert_eq!(0b1111_1111_1111_1111_1111_1111, MAX_ENTITIES);
+    }
 
     #[test]
     fn entity_new_returns_expected() {

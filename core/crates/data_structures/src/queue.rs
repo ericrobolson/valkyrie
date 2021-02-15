@@ -31,6 +31,11 @@ impl<T> Queue<T> {
         }
     }
 
+    /// Clears the collection.
+    pub fn clear(&mut self) {
+        self.items.clear();
+    }
+
     /// Returns the length of the collection
     pub fn len(&self) -> usize {
         self.items.len()
@@ -40,6 +45,37 @@ impl<T> Queue<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn queue_clear() {
+        let capacity = 123;
+        let mut queue: Queue<bool> = Queue::new(capacity);
+
+        queue.push(true);
+        queue.push(false);
+        queue.push(true);
+        queue.push(false);
+
+        queue.clear();
+        let expected_items: Vec<bool> = vec![];
+        assert_eq!(expected_items, queue.items);
+
+        assert_eq!(0, queue.len());
+    }
+
+    #[test]
+    fn queue_len() {
+        let capacity = 123;
+        let mut queue: Queue<bool> = Queue::new(capacity);
+        let expected_items: Vec<bool> = vec![true, false, true, false];
+
+        queue.push(true);
+        queue.push(false);
+        queue.push(true);
+        queue.push(false);
+
+        assert_eq!(4, queue.len());
+    }
 
     #[test]
     fn queue_new() {
