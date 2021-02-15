@@ -24,6 +24,7 @@ fn main() -> Result<(), String> {
         title: "GORE KILL",
         min_window_w: 1920,
         min_window_h: 1080,
+        sim_hz: 60,
     }) {
         Ok(result) => Ok(result),
         Err(e) => panic!("{:?}", e),

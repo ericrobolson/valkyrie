@@ -57,7 +57,6 @@ where
         let mut glow_renderer = make_glow_renderer();
 
         let mut renderer = el.run(move |event, _, control_flow| {
-            println!("{:?}", event);
             *control_flow = ControlFlow::Poll;
 
             let ev = Self::handle_event(event, control_flow);

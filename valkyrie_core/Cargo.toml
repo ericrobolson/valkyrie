@@ -13,6 +13,7 @@ renderer = {path="crates/renderer"}
 window = {path="crates/window"}
 data_structures = {path = "crates/data_structures"}
 ecs = {path = "crates/ecs"}
+timing = {path = "crates/timing"}
 
 # Platform specific dependencies
 platform_file_io = {path="crates/_platform_specific/platform_file_io"}

@@ -1396,6 +1396,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7572415bd688d401c52f6e36f4c8e805b9ae1622619303b9fa835d531db0acae"
 
 [[package]]
+name = "timing"
+version = "0.1.0"
+
+[[package]]
 name = "toml"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1460,6 +1464,7 @@ dependencies = [
  "platform_window_gfx",
  "renderer",
  "threading",
+ "timing",
  "window",
 ]
 
