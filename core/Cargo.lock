@@ -194,6 +194,8 @@ checksum = "a2df960f5d869b2dd8532793fde43eb5427cceb126c929747a26823ab0eeb536"
 name = "core"
 version = "0.1.0"
 dependencies = [
+ "data_structures",
+ "ecs",
  "file_io",
  "platform_file_io",
  "platform_threading",
@@ -332,6 +334,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "data_structures"
+version = "0.1.0"
+
+[[package]]
 name = "derivative"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -362,6 +368,13 @@ name = "downcast-rs"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
+
+[[package]]
+name = "ecs"
+version = "0.1.0"
+dependencies = [
+ "data_structures",
+]
 
 [[package]]
 name = "file_io"

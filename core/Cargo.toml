@@ -11,6 +11,8 @@ threading = {path="crates/threading"}
 file_io = {path="crates/file_io"}
 renderer = {path="crates/renderer"}
 window = {path="crates/window"}
+data_structures = {path = "crates/data_structures"}
+ecs = {path = "crates/ecs"}
 
 # Platform specific dependencies
 platform_file_io = {path="crates/_platform_specific/platform_file_io"}

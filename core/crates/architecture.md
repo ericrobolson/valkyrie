@@ -8,3 +8,5 @@ Everything else, which is platform agnostic and is built off the platform specif
 `threading` provides threading + job queue mechanisms
 `file_io` provides an async file i/o library built off of `threading`
 `audio` provides audio mechanisms
+`data_structures` provides common data structures
+`ecs` provides ECS generics
