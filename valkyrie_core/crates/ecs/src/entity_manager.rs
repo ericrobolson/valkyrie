@@ -58,7 +58,7 @@ impl EntityManager {
     }
 
     /// Destroys the given entity.
-    pub fn remove(&mut self, entity: Entity) {
+    pub fn destroy(&mut self, entity: Entity) {
         // Increase the generation id for the given entity.
         let id = {
             let id = entity.id() as usize;
@@ -104,7 +104,7 @@ mod tests {
         // Now check for generational
         for entity in 0..MAX_ENTITIES {
             let entity = Entity::new(entity as EntityId, 0);
-            manager.remove(entity);
+            manager.destroy(entity);
         }
 
         let entity = manager.create();
@@ -112,18 +112,18 @@ mod tests {
     }
 
     #[test]
-    fn entity_manager_remove_removes_entity() {
+    fn entity_manager_destroy_removes_entity() {
         let mut manager = EntityManager::new();
 
         let entity = manager.create();
-        manager.remove(entity);
+        manager.destroy(entity);
 
         let id = entity.id() as usize;
         assert_eq!(1, manager.generations[id]);
         assert_eq!(entity.id(), manager.free_entity_ids.items()[0]);
 
         // Only free entities that have a matching generation; if they don't match do nothing
-        manager.remove(entity);
+        manager.destroy(entity);
         assert_eq!(1, manager.generations[id]);
         assert_eq!(entity.id(), manager.free_entity_ids.items()[0]);
 
@@ -132,7 +132,7 @@ mod tests {
         manager.free_entity_ids.clear();
 
         let entity = Entity::new(entity.id(), Generation::MAX);
-        manager.remove(entity);
+        manager.destroy(entity);
         assert_eq!(0, manager.generations[id]);
         assert_eq!(entity.id(), manager.free_entity_ids.items()[0]);
     }
