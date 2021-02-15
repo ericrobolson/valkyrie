@@ -3,7 +3,8 @@ use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
 use glutin::{ContextBuilder, ContextWrapper};
 
-use window::{Window, WindowInput};
+use renderer::Renderer;
+use window::{Window, WindowControl, WindowInput};
 
 pub struct GlutinWindow {}
 
@@ -34,7 +35,7 @@ impl GlutinWindow {
 
 impl<MainFunc> Window<MainFunc> for GlutinWindow
 where
-    MainFunc: FnMut(Option<WindowInput>) + 'static,
+    MainFunc: FnMut(Option<WindowInput>, &mut dyn renderer::Renderer) -> WindowControl + 'static,
 {
     /// Implementation of the 'main loop' that drives the window. Note: in implementations may need to make main_loop_function() mutable.
     fn execute(&mut self, mut main_loop_function: MainFunc) {
@@ -53,17 +54,18 @@ where
             })
         };
 
-        el.run(move |event, _, control_flow| {
+        let mut glow_renderer = make_glow_renderer();
+
+        let mut renderer = el.run(move |event, _, control_flow| {
             println!("{:?}", event);
-            *control_flow = ControlFlow::Wait;
+            *control_flow = ControlFlow::Poll;
 
             let ev = Self::handle_event(event, control_flow);
 
             match ev {
                 Some(ev) => match ev {
-                    WindowInput::Shutdown => {}
+                    WindowInput::Shutdown => *control_flow = ControlFlow::Exit,
                     WindowInput::RedrawRequested => {
-                        //gl.draw_frame([1.0, 0.5, 0.7, 1.0]);
                         windowed_context.swap_buffers().unwrap();
                     }
                     WindowInput::Resize { w, h } => {
@@ -73,7 +75,21 @@ where
                 None => {}
             }
 
-            main_loop_function(ev);
+            match main_loop_function(ev, &mut glow_renderer) {
+                WindowControl::Ok => {
+                    // Do nothing
+                }
+                WindowControl::Shutdown => {
+                    *control_flow = ControlFlow::Exit;
+                }
+            }
         });
     }
 }
+
+fn make_glow_renderer() -> impl renderer::Renderer {
+    GlowRenderer {}
+}
+
+struct GlowRenderer {}
+impl Renderer for GlowRenderer {}

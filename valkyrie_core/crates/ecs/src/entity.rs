@@ -32,6 +32,11 @@ impl Debug for Entity {
 }
 
 impl Entity {
+    /// Returns the maximum number of entities
+    pub fn MAX_ENTITIES() -> usize {
+        MAX_ENTITIES
+    }
+
     /// Creates a new entity.
     pub fn new(id: EntityId, generation: Generation) -> Self {
         let generation = generation as EntityId;

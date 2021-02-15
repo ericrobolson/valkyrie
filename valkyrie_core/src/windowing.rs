@@ -1,5 +1,5 @@
 pub use renderer::Renderer;
-pub use window::{Window, WindowInput};
+pub use window::{Window, WindowControl, WindowInput};
 
 pub enum BackendType {
     /// Utilizes OpenGL as the backend
@@ -37,10 +37,19 @@ impl WinGfxBuilder {
         self
     }
 
-    pub fn build<T>(&self) -> Result<(Box<dyn Window<T>>, Box<dyn Renderer>), WinGfxBuildErr> {
-        platform_window_gfx::wingfx_glutin::GlutinWindow::new();
-        todo!()
+    pub fn build<MainFunc>(&self) -> Result<Box<dyn Window<MainFunc>>, WinGfxBuildErr>
+    where
+        MainFunc:
+            FnMut(Option<WindowInput>, &mut dyn renderer::Renderer) -> WindowControl + 'static,
+    {
+        Ok(Box::new(
+            platform_window_gfx::wingfx_glutin::GlutinWindow::new(),
+        ))
     }
+}
+
+pub fn render_world(world: &crate::GameWorld, renderer: &mut dyn renderer::Renderer) {
+    println!("TODO: render the world!");
 }
 
 #[cfg(test)]

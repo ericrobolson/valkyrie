@@ -112,6 +112,7 @@ where
         self.active_components -= 1;
     }
 
+    /*
     /// Removes all entities that aren't alive
     pub fn garbage_collection(&mut self, entity_manager: &EntityManager) {
         // Potential optimization: only destroy a few components at a time
@@ -124,6 +125,7 @@ where
             }
         }
     }
+     */
 }
 
 #[cfg(test)]
@@ -140,65 +142,66 @@ mod tests {
         assert_eq!(vec![None; MAX_ENTITIES], store.entity_map);
     }
 
-    #[test]
-    fn component_garbage_collection() {
-        let max_components = 5;
-        let mut store: ComponentStore<u8> = ComponentStore::new(max_components);
+    /*
+       #[test]
+       fn component_garbage_collection() {
+           let max_components = 5;
+           let mut store: ComponentStore<u8> = ComponentStore::new(max_components);
 
-        let mut entity_manager = EntityManager::new();
+           let mut entity_manager = EntityManager::new();
 
-        let entity1 = entity_manager.create();
-        let entity1_value = 123;
-        match store.add(entity1) {
-            Ok(e) => {
-                *e = entity1_value;
-            }
-            _ => todo!(),
-        }
+           let entity1 = entity_manager.create();
+           let entity1_value = 123;
+           match store.add(entity1) {
+               Ok(e) => {
+                   *e = entity1_value;
+               }
+               _ => todo!(),
+           }
 
-        let entity2 = entity_manager.create();
-        let entity2_value = 234;
-        match store.add(entity2) {
-            Ok(e) => {
-                *e = entity2_value;
-            }
-            _ => todo!(),
-        }
+           let entity2 = entity_manager.create();
+           let entity2_value = 234;
+           match store.add(entity2) {
+               Ok(e) => {
+                   *e = entity2_value;
+               }
+               _ => todo!(),
+           }
 
-        let entity3 = entity_manager.create();
-        let entity3_value = 2;
-        match store.add(entity3) {
-            Ok(e) => {
-                *e = entity3_value;
-            }
-            _ => todo!(),
-        }
+           let entity3 = entity_manager.create();
+           let entity3_value = 2;
+           match store.add(entity3) {
+               Ok(e) => {
+                   *e = entity3_value;
+               }
+               _ => todo!(),
+           }
 
-        let entity4 = entity_manager.create();
-        let entity4_value = 010;
-        match store.add(entity4) {
-            Ok(e) => {
-                *e = entity4_value;
-            }
-            _ => todo!(),
-        }
+           let entity4 = entity_manager.create();
+           let entity4_value = 010;
+           match store.add(entity4) {
+               Ok(e) => {
+                   *e = entity4_value;
+               }
+               _ => todo!(),
+           }
 
-        entity_manager.destroy(entity2);
-        entity_manager.destroy(entity3);
+           entity_manager.destroy(entity2);
+           entity_manager.destroy(entity3);
 
-        store.garbage_collection(&entity_manager);
+           store.garbage_collection(&entity_manager);
 
-        assert_eq!(None, store.entity_map[entity2.id() as usize]);
-        assert_eq!(None, store.entity_map[entity3.id() as usize]);
+           assert_eq!(None, store.entity_map[entity2.id() as usize]);
+           assert_eq!(None, store.entity_map[entity3.id() as usize]);
 
-        assert_eq!(entity1_value, store.components[0]);
-        assert_eq!(entity4_value, store.components[1]);
+           assert_eq!(entity1_value, store.components[0]);
+           assert_eq!(entity4_value, store.components[1]);
 
-        assert_eq!(Some((entity1, 0)), store.entity_map[entity1.id() as usize]);
-        assert_eq!(Some((entity4, 1)), store.entity_map[entity4.id() as usize]);
-        assert_eq!(2, store.active_components)
-    }
-
+           assert_eq!(Some((entity1, 0)), store.entity_map[entity1.id() as usize]);
+           assert_eq!(Some((entity4, 1)), store.entity_map[entity4.id() as usize]);
+           assert_eq!(2, store.active_components)
+       }
+    */
     #[test]
     fn component_destroy() {
         let max_components = 5;
