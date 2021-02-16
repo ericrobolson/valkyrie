@@ -1,4 +1,4 @@
-use window::{Window, WindowControl, WindowInput};
+use window::{InteractableSimulation, Window, WindowControl, WindowInput};
 
 // This contains a dummy implementation of a renderer + window for the server
 
@@ -21,18 +21,18 @@ impl DummyWindow {
     }
 }
 
-impl<MainFunc> Window<MainFunc> for DummyWindow
+impl<Sim> Window<Sim> for DummyWindow
 where
-    MainFunc: FnMut(Option<WindowInput>, &mut dyn renderer::Renderer) -> WindowControl + 'static,
+    Sim: InteractableSimulation + 'static,
 {
     /// Implementation of the 'main loop' that drives the window. Note: in implementations may need to make main_loop_function() mutable.
-    fn execute(&mut self, mut main_loop_function: MainFunc) {
+    fn execute(&mut self, mut simulation: Sim) {
         let mut dummy_renderer = DummyRenderer::new();
 
         loop {
-            match main_loop_function(None, &mut dummy_renderer) {
+            match simulation.tick(None, &mut dummy_renderer) {
                 WindowControl::Ok => {
-                    // keep going
+                    // Do nothing
                 }
                 WindowControl::Shutdown => {
                     // TODO: cleanup

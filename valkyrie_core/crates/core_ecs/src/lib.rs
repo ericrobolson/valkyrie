@@ -1,4 +1,12 @@
-use crate::{entity::MAX_ENTITIES, ComponentStore, ComponentStoreError, Entity, EntityManager};
+// Based on http://bitsquid.blogspot.com/2014/08/building-data-oriented-entity-system.html
+
+mod component_store;
+mod entity;
+mod entity_manager;
+
+pub use component_store::{ComponentStore, ComponentStoreError};
+pub use entity::Entity;
+pub use entity_manager::EntityManager;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum WorldType {
@@ -37,7 +45,7 @@ pub trait WorldImplementation {
 macro_rules! define_world {
     {
         id: $world:ident,
-        components: {$({$component_id:ident : $component_type:ty, $networked:expr, capacity: $component_size:expr }), *},
+        components: [$({$component_id:ident : $component_type:ty, $networked:expr, capacity: $component_size:expr }), *],
         systems: [$($system_execution:ident),*]
     } => {
         pub struct $world {
@@ -54,7 +62,7 @@ macro_rules! define_world {
                 Self {
                     world_type,
                     entity_manager: EntityManager::new(),
-                    destroyed_entities: Vec::with_capacity(MAX_ENTITIES),
+                    destroyed_entities: Vec::with_capacity(Entity::MAX_ENTITIES()),
                     $($component_id : ComponentStore::new($component_size),)*
 
                 }
@@ -109,7 +117,7 @@ mod tests {
 
     define_world! {
         id: World,
-        components: {
+        components: [
             {
                 alive: bool,
                 NetworkType::None,
@@ -120,7 +128,7 @@ mod tests {
                 NetworkType::None,
                 capacity: 300
             }
-        },
+        ],
         systems: [test_func]
     }
 

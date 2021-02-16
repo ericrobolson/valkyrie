@@ -1,6 +1,12 @@
 use valkyrie_core::{
-    ClientConfig, ControlMessage, EngineMessage, GameConfig, GameImplementation, World,
+    ecs::*, ClientConfig, ControlMessage, EngineMessage, GameConfig, GameImplementation, Renderer,
 };
+
+define_world! {
+    id: World,
+    components: [],
+    systems: []
+}
 
 pub struct Game {
     tick: usize,
@@ -12,17 +18,18 @@ impl Default for Game {
     }
 }
 
-impl GameImplementation for Game {
-    fn tick(&mut self, world: &mut World, messages: &[EngineMessage]) -> ControlMessage {
-        self.tick += 1;
-        println!("A tick! {:?}", self.tick);
+impl GameImplementation<World> for Game {
+    fn tick(world: &mut World, messages: &[EngineMessage]) -> ControlMessage {
+        println!("A tick! {:?}", 0);
 
         ControlMessage::Ok
     }
+
+    fn render_world(world: &World, renderer: &mut dyn Renderer) {}
 }
 
 fn main() -> Result<(), String> {
-    match valkyrie_core::run::<Game>(
+    match valkyrie_core::run::<Game, World>(
         60,
         GameConfig::Client(ClientConfig {
             title: "GORE KILL",

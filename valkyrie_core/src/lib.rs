@@ -1,12 +1,21 @@
+use std::marker::PhantomData;
+
 use data_structures::queue::Queue;
-use window::WindowControl;
+use timing::{Duration, Stopwatch};
+use window::{InteractableSimulation, WindowControl};
 
 mod server_dummy_wingfx;
 pub mod windowing;
 
-pub use ecs::{define_world, WorldImplementation, WorldType};
+pub use renderer::Renderer;
 
 // TODO: organize this
+
+pub mod ecs {
+    pub use core_ecs::*;
+}
+
+use ecs::*;
 
 pub enum Input {
     WindowInput(windowing::WindowInput),
@@ -27,21 +36,19 @@ pub enum EngineMessage {
 
 pub trait GameImplementation<World>: Default {
     /// A single 'tick' for a game. You can assume this is about 60hz.
-    fn tick(
-        &mut self,
-        world: &impl WorldImplementation,
-        messages: &[EngineMessage],
-    ) -> ControlMessage;
+    fn tick(world: &mut World, messages: &[EngineMessage]) -> ControlMessage;
 
-    fn render_world(world: &World, renderer: &mut dyn renderer::Renderer);
+    fn render_world(world: &World, renderer: &mut dyn Renderer);
 }
 
+#[derive(Clone)]
 pub struct ClientConfig {
     pub min_window_w: u32,
     pub min_window_h: u32,
     pub title: &'static str,
 }
 
+#[derive(Clone)]
 pub struct ServerConfig {}
 
 pub enum GameConfig {
@@ -61,6 +68,159 @@ struct ServerState<MainFunc> {
     window: Box<dyn windowing::Window<MainFunc>>,
 }
 
+pub struct GameManager<World, Game>
+where
+    World: WorldImplementation,
+    Game: GameImplementation<World>,
+{
+    client_world: Option<World>,
+    client_engine_queue: Queue<EngineMessage>,
+
+    tick_duration: Duration,
+    accumulated_time: Duration,
+    simulation_stopwatch: Stopwatch,
+
+    server_world: Option<World>,
+    phantom_data: PhantomData<Game>,
+}
+
+impl<World, Game> InteractableSimulation for GameManager<World, Game>
+where
+    World: WorldImplementation,
+    Game: GameImplementation<World>,
+{
+    fn tick(
+        &mut self,
+        input: Option<window::WindowInput>,
+        renderer: &mut dyn renderer::Renderer,
+    ) -> WindowControl {
+        let mut window_control = WindowControl::Ok;
+
+        // Queue up any messages
+        if let Some(input) = input {
+            self.client_engine_queue.push(EngineMessage::Input(input));
+        }
+
+        // Increase accumulated time + tick if necessary
+        // Based on https://gafferongames.com/post/fix_your_timestep/ to divorce rendering + simulations
+        {
+            self.accumulated_time += self.simulation_stopwatch.elapsed();
+            let mut updated_state = false;
+
+            // In the event that the loop gets in a spiral of death where the sim can't keep up,
+            // clamp it to a set number of ticks per frame to prevent spiraling downward.
+            const MAX_TICKS_PER_FRAME: u8 = 10;
+            let mut times_ticked = 0;
+
+            // Tick the simulation until it has caught up
+            while self.accumulated_time > self.tick_duration {
+                self.accumulated_time -= self.tick_duration;
+                times_ticked += 1;
+
+                /*
+                            // tick the game
+                            if let Some(mut world) = &mut self.client_world.as_deref() {
+                                match Game::tick(&mut world, &self.client_engine_queue.items()) {
+                                    ControlMessage::Ok => {
+                                        self.client_engine_queue.clear();
+                                        updated_state = true;
+                                        world.dispatch();
+                                    }
+                                    ControlMessage::Shutdown => {
+                                        window_control = WindowControl::Shutdown;
+                                    }
+                                    ControlMessage::RequestServerChange => {
+                                        // If requesting local, reset local server state
+
+                                        // If requesting remote, connect to remote
+
+                                        todo!("Request changing the server to either a remote or local.");
+                                    }
+                                }
+                            }
+
+                            if let Some(mut world) = &mut self.server_world {
+                                match Game::tick(&mut world, &[]) {
+                                    ControlMessage::Ok => {
+                                        self.client_engine_queue.clear();
+                                        updated_state = true;
+                                        world.dispatch();
+                                    }
+                                    ControlMessage::Shutdown => {
+                                        window_control = WindowControl::Shutdown;
+                                    }
+                                    ControlMessage::RequestServerChange => {
+                                        // Server shouldn't change here.
+                                    }
+                                }
+                            }
+                */
+                // Break out if the sim is taking too long.
+                if times_ticked >= MAX_TICKS_PER_FRAME {
+                    // This way it keeps processing and doesn't get stuck in a horrendous loop. It'll slow the game down
+                    // to a crawl, but at least it isn't preventing people from playing.
+                    break;
+                }
+
+                if window_control == WindowControl::Shutdown {
+                    todo!("How to shut down? How to deal with servers and/or clients?");
+                    break;
+                }
+            }
+
+            // If there's a new state and it's not shutting down render the latest version of the world.
+            if updated_state && window_control != WindowControl::Shutdown {
+                if let Some(world) = &mut self.client_world {
+                    if world.world_type() == WorldType::Client {
+                        Game::render_world(&world, renderer);
+                    }
+                }
+            }
+        }
+
+        // Return the window control
+        window_control
+    }
+}
+
+impl<World, Game> GameManager<World, Game>
+where
+    World: WorldImplementation,
+    Game: GameImplementation<World>,
+{
+    pub fn new(
+        max_engine_msgs: usize,
+        sim_hz: u32,
+        client_config: Option<ClientConfig>,
+        server_config: Option<ServerConfig>,
+    ) -> Self {
+        let tick_duration = timing::hz_to_duration(sim_hz);
+        let mut accumulated_time = timing::Duration::from_secs(0);
+        let mut simulation_stopwatch = timing::Stopwatch::new();
+
+        let client_world = match client_config {
+            Some(config) => Some(World::new(WorldType::Client)),
+            None => None,
+        };
+
+        let server_world = match server_config {
+            Some(config) => Some(World::new(WorldType::Server)),
+            None => None,
+        };
+
+        Self {
+            client_world,
+            server_world,
+
+            client_engine_queue: Queue::new(max_engine_msgs),
+            tick_duration,
+            accumulated_time,
+            simulation_stopwatch,
+            phantom_data: PhantomData,
+        }
+    }
+}
+
 /// Creates and runs the game.
 pub fn run<Game, World>(sim_hz: u32, config: GameConfig) -> Result<(), ValkErr>
 where
@@ -78,23 +238,19 @@ where
         }
     };
 
-    // This next section is a little hacky, but it basically allows one to create a client, server, or client + server to run the game.
-    // Client means you're connecting to a remote server
-    // Server means you're allowing remote clients to join
-    // ClientServer means you're allowing a single player mode, or the option to do both.
-    let mut client_state: Option<ClientState<_>> = None;
+    let (client_config, server_config) = match config {
+        GameConfig::Client(client) => (Some(client), None),
+        GameConfig::Server(server) => (None, Some(server)),
+        GameConfig::ClientServer {
+            client_config,
+            server_config,
+        } => (Some(client_config), Some(server_config)),
+    };
+
+    let mut client_state: Option<ClientState<GameManager<World, Game>>> = None;
     let mut server_state: Option<ServerState<_>> = None;
     {
-        let (client_config, server_config) = match config {
-            GameConfig::Client(client) => (Some(client), None),
-            GameConfig::Server(server) => (None, Some(server)),
-            GameConfig::ClientServer {
-                client_config,
-                server_config,
-            } => (Some(client_config), Some(server_config)),
-        };
-
-        match client_config {
+        match client_config.clone() {
             Some(config) => {
                 // Build up the client state
                 // Create the window
@@ -108,7 +264,7 @@ where
             }
             None => {}
         }
-        match server_config {
+        match server_config.clone() {
             Some(config) => {
                 // Build up the server state
                 server_state = Some(ServerState {
@@ -123,106 +279,18 @@ where
         todo!("How to run both client + server state in a single player setting? Can this be done in a single thread?");
     }
 
-    // Create the game engine
-    let mut game = Game::default();
-    let mut world = World::new(WorldType::Client);
-    let mut engine_queue = Queue::new(max_engine_msgs);
-
-    let mut local_server_game: Game = Game::default();
-    let mut local_server_world = World::new(WorldType::Server);
-
-    // Timing used for ticking the game simulation
-    let tick_duration = timing::hz_to_duration(sim_hz);
-    let mut accumulated_time = timing::Duration::from_secs(0);
-    let mut simulation_stopwatch = timing::Stopwatch::new();
-
-    let mut has_local_server = client_state.is_some() && server_state.is_some();
-
-    // Create the main loop
-    let main_loop = move |input: Option<windowing::WindowInput>,
-                          renderer: &mut dyn renderer::Renderer| {
-        let mut window_control = WindowControl::Ok;
-
-        // Queue up any messages
-        if let Some(input) = input {
-            engine_queue.push(EngineMessage::Input(input));
-        }
-
-        // Increase accumulated time + tick if necessary
-        // Based on https://gafferongames.com/post/fix_your_timestep/ to divorce rendering + simulations
-        {
-            accumulated_time += simulation_stopwatch.elapsed();
-            let mut updated_state = false;
-
-            // In the event that the loop gets in a spiral of death where the sim can't keep up,
-            // clamp it to a set number of ticks per frame to prevent spiraling downward.
-            const MAX_TICKS_PER_FRAME: u8 = 10;
-            let mut times_ticked = 0;
-
-            // Tick the simulation until it has caught up
-            while accumulated_time > tick_duration {
-                accumulated_time -= tick_duration;
-                times_ticked += 1;
-
-                // tick the game
-                match game.tick(&mut world, &engine_queue.items()) {
-                    ControlMessage::Ok => {
-                        engine_queue.clear();
-                        updated_state = true;
-                        world.dispatch();
-                    }
-                    ControlMessage::Shutdown => {
-                        window_control = WindowControl::Shutdown;
-                    }
-                    ControlMessage::RequestServerChange => {
-                        // If requesting local, reset local server state
-
-                        // If requesting remote, connect to remote
-
-                        todo!("Request changing the server to either a remote or local.");
-                    }
-                }
-
-                // TODO: I don't like this. Instead, what about abstracting it so there's only one actual world?
-                if has_local_server {
-                    local_server_game.tick(&mut local_server_world, &[]);
-                    local_server_world.dispatch();
-                }
-
-                // Break out if the sim is taking too long.
-                if times_ticked >= MAX_TICKS_PER_FRAME {
-                    // This way it keeps processing and doesn't get stuck in a horrendous loop. It'll slow the game down
-                    // to a crawl, but at least it isn't preventing people from playing.
-                    break;
-                }
-
-                if window_control == WindowControl::Shutdown {
-                    todo!("How to shut down? How to deal with servers and/or clients?");
-                    break;
-                }
-            }
-
-            // If there's a new state and it's not shutting down render the latest version of the world.
-            if updated_state && window_control != WindowControl::Shutdown {
-                if world.world_type() == WorldType::Client {
-                    Game::render_world(&world, renderer);
-                }
-            }
-        }
-
-        // Return the window control
-        window_control
-    };
+    // Create the game simulation
+    let sim = GameManager::new(max_engine_msgs, sim_hz, client_config, server_config);
 
     // Kick it all off.
     match client_state {
         Some(mut client_state) => {
             // possibly client + server stuff
-            client_state.window.execute(main_loop);
+            client_state.window.execute(sim);
         }
         None => {
             if let Some(mut server_state) = server_state {
-                server_state.window.execute(main_loop);
+                server_state.window.execute(sim);
             }
         }
     }

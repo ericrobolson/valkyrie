@@ -15,13 +15,22 @@ pub enum WindowControl {
     Shutdown,
 }
 
+/// A trait a simulation must provide.
+pub trait InteractableSimulation {
+    fn tick(
+        &mut self,
+        input: Option<WindowInput>,
+        renderer: &mut dyn renderer::Renderer,
+    ) -> WindowControl;
+}
+
 ///  Implementation of a window
-pub trait Window<MainFunc>
+pub trait Window<Sim>
 where
-    MainFunc: FnMut(Option<WindowInput>, &mut dyn renderer::Renderer) -> WindowControl + 'static,
+    Sim: InteractableSimulation + 'static,
 {
     /// Implementation of the 'main loop' that drives the window. Note: in implementations may need to make main_loop_function() mutable.
-    fn execute(&mut self, main_loop_function: MainFunc);
+    fn execute(&mut self, simulation: Sim);
 }
 
 #[cfg(test)]

@@ -1,4 +1,5 @@
 pub use renderer::Renderer;
+use window::InteractableSimulation;
 pub use window::{Window, WindowControl, WindowInput};
 
 pub enum BackendType {
@@ -37,10 +38,9 @@ impl WinGfxBuilder {
         self
     }
 
-    pub fn build<MainFunc>(&self) -> Result<Box<dyn Window<MainFunc>>, WinGfxBuildErr>
+    pub fn build<Sim>(&self) -> Result<Box<dyn Window<Sim>>, WinGfxBuildErr>
     where
-        MainFunc:
-            FnMut(Option<WindowInput>, &mut dyn renderer::Renderer) -> WindowControl + 'static,
+        Sim: InteractableSimulation + 'static,
     {
         Ok(Box::new(
             platform_window_gfx::wingfx_glutin::GlutinWindow::new(

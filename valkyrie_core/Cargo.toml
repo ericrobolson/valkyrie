@@ -12,7 +12,7 @@ file_io = {path="crates/file_io"}
 renderer = {path="crates/renderer"}
 window = {path="crates/window"}
 data_structures = {path = "crates/data_structures"}
-ecs = {path = "crates/ecs"}
+core_ecs = {path = "crates/core_ecs"}
 timing = {path = "crates/timing"}
 
 # Platform specific dependencies
