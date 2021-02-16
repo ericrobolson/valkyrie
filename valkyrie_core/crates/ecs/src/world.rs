@@ -1,52 +1,101 @@
-use crate::{
-    component_store::StoreableComponent, entity::MAX_ENTITIES, ComponentStore, Entity,
-    EntityManager,
-};
+use crate::{entity::MAX_ENTITIES, ComponentStore, ComponentStoreError, Entity, EntityManager};
 
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum WorldType {
     Client,
     Server,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum NetworkType {
+    ClientAuthorative,
+    ServerAuthoratative,
+    None,
+}
+
+pub trait WorldImplementation {
+    /// Instantiates a new world
+    fn new(world_type: WorldType) -> Self;
+
+    /// Returns the type of the world
+    fn world_type(&self) -> WorldType;
+
+    /// Creates a new entity
+    fn add_entity(&mut self) -> Entity;
+
+    /// Returns whether the entity is alive
+    fn is_alive(&self, entity: Entity) -> bool;
+
+    /// Queue the entity for destruction.
+    fn destroy(&mut self, entity: Entity);
+
+    /// Execute all systems for the world.
+    fn dispatch(&mut self);
 }
 
 #[macro_export]
 macro_rules! define_world {
     {
         id: $world:ident,
-        server_authoritative: [$($server_component:ident : $server_component_type:ty = 300),*],
-        client_authoritative: [$($client_component:ident : $client_component_type:ty),*],
-        not_networked: [$($unnetworked_component:ident : $unnetworked_component_type:ty),*],
+        components: {$({$component_id:ident : $component_type:ty, $networked:expr, capacity: $component_size:expr }), *},
         systems: [$($system_execution:ident),*]
     } => {
         pub struct $world {
             world_type: WorldType,
-            $($server_component : ComponentStore<$server_component_type>,)*
-            $($client_component : ComponentStore<$client_component_type>,)*
-            $($unnetworked_component : ComponentStore<$unnetworked_component_type>,)*
+            entity_manager: EntityManager,
+            destroyed_entities: Vec<Entity>,
+            $(pub $component_id : ComponentStore<$component_type>,)*
         }
 
-        impl $world {
+
+        impl WorldImplementation for $world {
             /// Instantiates a new world
-            pub fn new(world_type: WorldType) -> Self {
-                todo!()
-            }
+            fn new(world_type: WorldType) -> Self {
+                Self {
+                    world_type,
+                    entity_manager: EntityManager::new(),
+                    destroyed_entities: Vec::with_capacity(MAX_ENTITIES),
+                    $($component_id : ComponentStore::new($component_size),)*
 
-            /// Executes all relevant network code
-            fn network(&mut self) {
-                // TODO: the various networking fun
-
-                match self.world_type{
-                    WorldType::Client => {},
-                    WorldType::Server => {},
                 }
             }
 
-            /// Execute all systems for the world.
-            pub fn dispatch(&mut self) {
-                // TODO: system calls
-                $($system_execution(&mut self));*
+            /// Returns the type of the world
+            fn world_type(&self) -> WorldType {
+                self.world_type
+            }
 
-                // Finally execute the networking.
-                self.network();
+            /// Creates a new entity
+            fn add_entity(&mut self) -> Entity {
+                self.entity_manager.create()
+            }
+
+            /// Returns whether the entity is alive
+            fn is_alive(&self, entity: Entity) -> bool {
+                self.entity_manager.is_alive(entity)
+            }
+
+            /// Queue the entity for destruction.
+            fn destroy(&mut self, entity: Entity) {
+                self.entity_manager.destroy(entity);
+                self.destroyed_entities.push(entity);
+            }
+
+            /// Execute all systems for the world.
+            fn dispatch(&mut self) {
+                // System calls
+                {
+                    $(
+                        $system_execution(self)
+                    );*
+                }
+
+                // Garbage collection
+                for destroyed_entity in self.destroyed_entities.iter() {
+                    $(self.$component_id.destroy(*destroyed_entity));*
+                }
+
+                self.destroyed_entities.clear();
             }
         }
     };
@@ -54,27 +103,60 @@ macro_rules! define_world {
 
 #[cfg(test)]
 mod tests {
-    use crate::component_store::StoreableComponent;
-
     use super::*;
+
+    fn test_func(world: &mut World) {}
 
     define_world! {
         id: World,
-        server_authoritative: [alive:bool = 300],
-        client_authoritative: [],
-        not_networked: [],
-        systems: [test]
+        components: {
+            {
+                alive: bool,
+                NetworkType::None,
+                capacity: 300
+            },
+            {
+                alive2: u8,
+                NetworkType::None,
+                capacity: 300
+            }
+        },
+        systems: [test_func]
     }
-}
 
-// TODO: this probably should be in a module...
+    #[test]
+    fn world() {
+        let mut world = World::new(WorldType::Server);
+        let entity = world.add_entity();
+        match world.alive.add(entity) {
+            Ok(mut alive) => {
+                *alive = true;
+            }
+            Err(_) => {
+                todo!()
+            }
+        }
 
-impl StoreableComponent for bool {
-    fn serialize(&self) -> &[u8] {
-        todo!()
-    }
+        match world.alive.get(entity) {
+            Some(alive) => {
+                assert_eq!(true, *alive);
+            }
+            None => {
+                todo!()
+            }
+        }
 
-    fn deserialize(bytes: &[u8]) -> Result<Self, crate::component_store::NetworkableComponentErr> {
-        todo!()
+        world.destroy(entity);
+        world.dispatch();
+
+        assert_eq!(false, world.is_alive(entity));
+        match world.alive.get(entity) {
+            Some(_) => {
+                todo!()
+            }
+            None => {
+                // ok
+            }
+        }
     }
 }

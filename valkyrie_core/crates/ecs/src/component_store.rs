@@ -1,16 +1,6 @@
 // Based on http://bitsquid.blogspot.com/2014/09/building-data-oriented-entity-system.html
 use crate::{entity::MAX_ENTITIES, Entity, EntityManager};
 
-pub enum NetworkableComponentErr {}
-
-pub trait StoreableComponent
-where
-    Self: Sized + Default + Clone,
-{
-    fn serialize(&self) -> &[u8];
-    fn deserialize(bytes: &[u8]) -> Result<Self, NetworkableComponentErr>;
-}
-
 #[derive(PartialEq, Debug)]
 pub enum ComponentStoreError {
     BufferOverflow,
@@ -18,7 +8,7 @@ pub enum ComponentStoreError {
 
 pub struct ComponentStore<Component>
 where
-    Component: StoreableComponent,
+    Component: Sized + Default + Clone,
 {
     entity_map: Vec<Option<(Entity, usize)>>,
     components: Vec<Component>,
@@ -27,7 +17,7 @@ where
 
 impl<Component> ComponentStore<Component>
 where
-    Component: StoreableComponent,
+    Component: Sized + Default + Clone,
 {
     /// Creates a new component store.
     pub fn new(component_capacity: usize) -> Self {
@@ -89,7 +79,7 @@ where
     }
 
     /// Destroys a component for a given entity.
-    pub fn destroy(&mut self, entity_to_destroy: Entity) {
+    pub(crate) fn destroy(&mut self, entity_to_destroy: Entity) {
         if self.active_components == 0 {
             return;
         }
@@ -141,16 +131,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    impl StoreableComponent for u8 {
-        fn serialize(&self) -> &[u8] {
-            todo!()
-        }
-
-        fn deserialize(bytes: &[u8]) -> Result<Self, NetworkableComponentErr> {
-            todo!()
-        }
-    }
 
     #[test]
     fn new() {

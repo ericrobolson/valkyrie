@@ -1,11 +1,10 @@
 use data_structures::queue::Queue;
 use window::WindowControl;
 
-mod rendering;
 mod server_dummy_wingfx;
 pub mod windowing;
-mod world;
-pub use world::{World, WorldType};
+
+pub use ecs::{define_world, WorldImplementation, WorldType};
 
 // TODO: organize this
 
@@ -26,9 +25,15 @@ pub enum EngineMessage {
     Input(windowing::WindowInput),
 }
 
-pub trait GameImplementation: Default {
+pub trait GameImplementation<World>: Default {
     /// A single 'tick' for a game. You can assume this is about 60hz.
-    fn tick(&mut self, world: &mut World, messages: &[EngineMessage]) -> ControlMessage;
+    fn tick(
+        &mut self,
+        world: &impl WorldImplementation,
+        messages: &[EngineMessage],
+    ) -> ControlMessage;
+
+    fn render_world(world: &World, renderer: &mut dyn renderer::Renderer);
 }
 
 pub struct ClientConfig {
@@ -48,9 +53,8 @@ pub enum GameConfig {
     },
 }
 
-struct ClientState<MainFunc, Game> {
+struct ClientState<MainFunc> {
     window: Box<dyn windowing::Window<MainFunc>>,
-    local_server_state: Option<(Game, World)>,
 }
 
 struct ServerState<MainFunc> {
@@ -58,9 +62,10 @@ struct ServerState<MainFunc> {
 }
 
 /// Creates and runs the game.
-pub fn run<Game>(sim_hz: u32, config: GameConfig) -> Result<(), ValkErr>
+pub fn run<Game, World>(sim_hz: u32, config: GameConfig) -> Result<(), ValkErr>
 where
-    Game: GameImplementation + 'static,
+    World: WorldImplementation + 'static,
+    Game: GameImplementation<World> + 'static,
 {
     // Config setup
     let max_engine_msgs = 500;
@@ -77,7 +82,7 @@ where
     // Client means you're connecting to a remote server
     // Server means you're allowing remote clients to join
     // ClientServer means you're allowing a single player mode, or the option to do both.
-    let mut client_state: Option<ClientState<_, Game>> = None;
+    let mut client_state: Option<ClientState<_>> = None;
     let mut server_state: Option<ServerState<_>> = None;
     {
         let (client_config, server_config) = match config {
@@ -99,10 +104,7 @@ where
                         .build()
                         .unwrap();
 
-                client_state = Some(ClientState {
-                    window,
-                    local_server_state: None,
-                });
+                client_state = Some(ClientState { window });
             }
             None => {}
         }
@@ -167,7 +169,7 @@ where
                     ControlMessage::Ok => {
                         engine_queue.clear();
                         updated_state = true;
-                        world::garbage_collect(&mut world);
+                        world.dispatch();
                     }
                     ControlMessage::Shutdown => {
                         window_control = WindowControl::Shutdown;
@@ -184,7 +186,7 @@ where
                 // TODO: I don't like this. Instead, what about abstracting it so there's only one actual world?
                 if has_local_server {
                     local_server_game.tick(&mut local_server_world, &[]);
-                    world::garbage_collect(&mut local_server_world);
+                    local_server_world.dispatch();
                 }
 
                 // Break out if the sim is taking too long.
@@ -202,7 +204,9 @@ where
 
             // If there's a new state and it's not shutting down render the latest version of the world.
             if updated_state && window_control != WindowControl::Shutdown {
-                rendering::render_world(&world, renderer);
+                if world.world_type() == WorldType::Client {
+                    Game::render_world(&world, renderer);
+                }
             }
         }
 
