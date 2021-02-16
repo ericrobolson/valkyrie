@@ -30,7 +30,7 @@ impl WinGfxBuilder {
         }
     }
 
-    pub fn with_min_size<'a>(&'a mut self, min_h: u32, min_w: u32) -> &'a mut Self {
+    pub fn with_min_size<'a>(&'a mut self, min_w: u32, min_h: u32) -> &'a mut Self {
         self.size.h = min_h;
         self.size.w = min_w;
 
@@ -43,13 +43,13 @@ impl WinGfxBuilder {
             FnMut(Option<WindowInput>, &mut dyn renderer::Renderer) -> WindowControl + 'static,
     {
         Ok(Box::new(
-            platform_window_gfx::wingfx_glutin::GlutinWindow::new(),
+            platform_window_gfx::wingfx_glutin::GlutinWindow::new(
+                self.title,
+                self.size.w,
+                self.size.h,
+            ),
         ))
     }
-}
-
-pub fn render_world(world: &crate::GameWorld, renderer: &mut dyn renderer::Renderer) {
-    println!("TODO: render the world!");
 }
 
 #[cfg(test)]

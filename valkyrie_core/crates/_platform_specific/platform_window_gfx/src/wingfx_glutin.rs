@@ -6,11 +6,15 @@ use glutin::{ContextBuilder, ContextWrapper};
 use renderer::Renderer;
 use window::{Window, WindowControl, WindowInput};
 
-pub struct GlutinWindow {}
+pub struct GlutinWindow {
+    title: &'static str,
+    w: u32,
+    h: u32,
+}
 
 impl GlutinWindow {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(title: &'static str, w: u32, h: u32) -> Self {
+        Self { title, w, h }
     }
 
     fn handle_event<T>(event: Event<T>, control_flow: &mut ControlFlow) -> Option<WindowInput> {
@@ -41,8 +45,8 @@ where
     fn execute(&mut self, mut main_loop_function: MainFunc) {
         let el = glutin::event_loop::EventLoop::new();
         let wb = glutin::window::WindowBuilder::new()
-            .with_title("Hello triangle!")
-            .with_inner_size(glutin::dpi::LogicalSize::new(1024.0, 768.0));
+            .with_title(self.title)
+            .with_inner_size(glutin::dpi::LogicalSize::new(self.w as f32, self.h as f32));
         let windowed_context = glutin::ContextBuilder::new()
             .with_vsync(true)
             .build_windowed(wb, &el)
