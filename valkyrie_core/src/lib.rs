@@ -5,25 +5,17 @@ pub mod ecs {
 }
 
 mod sim_managers;
-use sim_managers::{RenderableSimManager, SimManager};
+use sim_managers::{Config, RenderableSimManager, SimManager};
+
+pub use window::Renderable;
 
 use data_structures::queue::Queue;
-use ecs::*;
-use std::marker::PhantomData;
-use timing::{Duration, Stopwatch};
-use window::{Window, WindowControl};
+use window::WindowControl;
 
 // TODO: organize this
 
-pub trait Config: Sized + Copy + Clone {
-    fn sim_hz(&self) -> Option<u32>;
-}
-
-pub trait Simulation<Cfg>: Default
-where
-    Cfg: Config,
-{
-    fn new(config: impl Config) -> Self;
+pub trait Simulation<Cfg> {
+    fn new(config: Cfg) -> Self;
 
     /// A single 'tick' for an application.
     fn tick(&mut self, messages: &[EngineMessage]) -> ControlMessage;
@@ -53,7 +45,27 @@ where
     Ok(())
 }
 
-pub trait ClientImplementation: Simulation<ClientConfig> + window::Renderable {}
+/// Creates and runs the game.
+pub fn run_client<Client>(config: ClientConfig) -> Result<(), ValkErr>
+where
+    Client: Simulation<ClientConfig> + window::Renderable + 'static,
+{
+    use window::{Renderable, Simulation};
+
+    let mut window = windowing::WinGfxBuilder::new(config.title, windowing::BackendType::Opengl)
+        .with_min_size(config.min_window_w, config.min_window_h)
+        .build()
+        .unwrap();
+
+    // Build up the client
+    let client: RenderableSimManager<Client, ClientConfig> =
+        RenderableSimManager::new(MAX_ENGINE_MSGS, config);
+
+    // Start executing in the window
+    window.execute(client);
+
+    Ok(())
+}
 
 pub enum Input {
     WindowInput(windowing::WindowInput),
@@ -107,25 +119,4 @@ pub struct GameConfig {
     pub client_config: Option<ClientConfig>,
     /// The server configuration
     pub server_config: Option<ServerConfig>,
-}
-/// Creates and runs the game.
-pub fn run_client<Client>(config: ClientConfig) -> Result<(), ValkErr>
-where
-    Client: ClientImplementation + 'static,
-{
-    use window::{Renderable, Simulation};
-
-    let mut window = windowing::WinGfxBuilder::new(config.title, windowing::BackendType::Opengl)
-        .with_min_size(config.min_window_w, config.min_window_h)
-        .build()
-        .unwrap();
-
-    // Build up the client
-    let client: RenderableSimManager<Client, ClientConfig> =
-        RenderableSimManager::new(MAX_ENGINE_MSGS, config);
-
-    // Start executing in the window
-    window.execute(client);
-
-    Ok(())
 }

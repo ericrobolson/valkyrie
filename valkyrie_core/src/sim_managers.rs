@@ -1,6 +1,10 @@
 use timing::{Duration, Stopwatch};
 
-use crate::{Config, ControlMessage, EngineMessage, Queue, Simulation, WindowControl};
+use crate::{ControlMessage, EngineMessage, Queue, Simulation, WindowControl};
+
+pub trait Config: Sized + Copy + Clone {
+    fn sim_hz(&self) -> Option<u32>;
+}
 
 struct Timekeeper {
     tick_duration: Duration,

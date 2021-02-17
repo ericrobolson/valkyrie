@@ -1,5 +1,5 @@
 use valkyrie_core::{
-    ecs::*, ClientConfig, ControlMessage, EngineMessage, GameConfig, GameImplementation, Renderer,
+    ecs::*, ClientConfig, ControlMessage, EngineMessage, Renderable, Renderer, Simulation,
 };
 
 define_world! {
@@ -12,31 +12,31 @@ pub struct Game {
     tick: usize,
 }
 
-impl Default for Game {
-    fn default() -> Self {
+impl Simulation<ClientConfig> for Game {
+    fn new(config: ClientConfig) -> Self {
         Self { tick: 0 }
+    }
+
+    fn tick(&mut self, messages: &[EngineMessage]) -> ControlMessage {
+        self.tick += 1;
+
+        ControlMessage::RequestRenderStateUpdate
     }
 }
 
-impl GameImplementation<World> for Game {
-    fn tick(&mut self, world: &mut World, messages: &[EngineMessage]) -> ControlMessage {
-        println!("A tick! {:?}", 0);
-
-        ControlMessage::Ok
+impl Renderable for Game {
+    fn render(&self, renderer: &mut dyn Renderer) {
+        println!("RENDERING: {:?} - tick", self.tick);
     }
-
-    fn render_world(world: &World, renderer: &mut dyn Renderer) {}
 }
 
 fn main() -> Result<(), String> {
-    match valkyrie_core::run::<Game, World>(
-        60,
-        GameConfig::Client(ClientConfig {
-            title: "GORE KILL",
-            min_window_w: 1920,
-            min_window_h: 1080,
-        }),
-    ) {
+    match valkyrie_core::run_client::<Game>(ClientConfig {
+        sim_hz: Some(60),
+        min_window_w: 1920,
+        min_window_h: 1080,
+        title: "GORE KILL",
+    }) {
         Ok(result) => Ok(result),
         Err(e) => panic!("{:?}", e),
     }
