@@ -1,6 +1,4 @@
-use valkyrie_core::{
-    ecs::*, ClientConfig, ControlMessage, EngineMessage, Renderable, Renderer, Simulation,
-};
+use valkyrie_core::{application::*, ecs::*};
 
 define_world! {
     id: World,
@@ -31,7 +29,7 @@ impl Renderable for Game {
 }
 
 fn main() -> Result<(), String> {
-    match valkyrie_core::run_client::<Game>(ClientConfig {
+    match run_client::<Game>(ClientConfig {
         sim_hz: Some(60),
         min_window_w: 1920,
         min_window_h: 1080,

@@ -3,8 +3,8 @@ use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
 use glutin::{ContextBuilder, ContextWrapper};
 
-use renderer::Renderer;
-use window::{Renderable, Simulation, Window, WindowControl, WindowInput};
+use core_renderer::Renderer;
+use core_window::{Renderable, Simulation, Window, WindowControl, WindowInput};
 
 pub struct GlutinWindow {
     title: &'static str,
@@ -103,7 +103,7 @@ where
     }
 }
 
-fn make_glow_renderer() -> impl renderer::Renderer {
+fn make_glow_renderer() -> impl Renderer {
     GlowRenderer {}
 }
 

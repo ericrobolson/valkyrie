@@ -273,10 +273,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "core_data_structures"
+version = "0.1.0"
+
+[[package]]
 name = "core_ecs"
 version = "0.1.0"
 dependencies = [
- "data_structures",
+ "core_data_structures",
+]
+
+[[package]]
+name = "core_file_io"
+version = "0.1.0"
+
+[[package]]
+name = "core_renderer"
+version = "0.1.0"
+
+[[package]]
+name = "core_threading"
+version = "0.1.0"
+
+[[package]]
+name = "core_timing"
+version = "0.1.0"
+
+[[package]]
+name = "core_window"
+version = "0.1.0"
+dependencies = [
+ "core_renderer",
 ]
 
 [[package]]
@@ -326,10 +353,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "data_structures"
-version = "0.1.0"
-
-[[package]]
 name = "derivative"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -360,10 +383,6 @@ name = "downcast-rs"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
-
-[[package]]
-name = "file_io"
-version = "0.1.0"
 
 [[package]]
 name = "fixedbitset"
@@ -1164,11 +1183,11 @@ version = "0.1.0"
 name = "platform_window_gfx"
 version = "0.1.0"
 dependencies = [
+ "core_renderer",
+ "core_window",
  "glow",
  "glutin",
- "renderer",
  "wgpu",
- "window",
  "winit",
 ]
 
@@ -1219,10 +1238,6 @@ name = "redox_syscall"
 version = "0.1.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41cc0f7e4d5d4544e8861606a285bb08d3e70712ccc7d2b84d7c0ccfaf4b05ce"
-
-[[package]]
-name = "renderer"
-version = "0.1.0"
 
 [[package]]
 name = "rusttype"
@@ -1376,18 +1391,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "threading"
-version = "0.1.0"
-
-[[package]]
 name = "thunderdome"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7572415bd688d401c52f6e36f4c8e805b9ae1622619303b9fa835d531db0acae"
-
-[[package]]
-name = "timing"
-version = "0.1.0"
 
 [[package]]
 name = "toml"
@@ -1446,16 +1453,16 @@ checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
 name = "valkyrie_core"
 version = "0.1.0"
 dependencies = [
+ "core_data_structures",
  "core_ecs",
- "data_structures",
- "file_io",
+ "core_file_io",
+ "core_renderer",
+ "core_threading",
+ "core_timing",
+ "core_window",
  "platform_file_io",
  "platform_threading",
  "platform_window_gfx",
- "renderer",
- "threading",
- "timing",
- "window",
 ]
 
 [[package]]
@@ -1734,13 +1741,6 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
-
-[[package]]
-name = "window"
-version = "0.1.0"
-dependencies = [
- "renderer",
-]
 
 [[package]]
 name = "winit"

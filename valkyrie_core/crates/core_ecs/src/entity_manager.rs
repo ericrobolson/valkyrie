@@ -3,7 +3,7 @@ use crate::{
     Entity,
 };
 
-use data_structures::queue::Queue;
+use core_data_structures::queue::Queue;
 
 const MINIMUM_FREE_INDICES: usize = 1024;
 

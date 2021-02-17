@@ -1,6 +1,4 @@
-pub use renderer::Renderer;
-use window::{Renderable, Simulation};
-pub use window::{Window, WindowControl, WindowInput};
+use core_window::{Renderable, Simulation, Window, WindowControl, WindowInput};
 
 pub enum BackendType {
     /// Utilizes OpenGL as the backend

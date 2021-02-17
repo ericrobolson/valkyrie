@@ -273,6 +273,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "core_renderer"
+version = "0.1.0"
+
+[[package]]
+name = "core_window"
+version = "0.1.0"
+dependencies = [
+ "core_renderer",
+]
+
+[[package]]
 name = "d3d12"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -546,15 +557,6 @@ dependencies = [
  "naga",
  "raw-window-handle",
  "thiserror",
-]
-
-[[package]]
-name = "gl"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a94edab108827d67608095e269cf862e60d920f144a5026d3dbcfd8b877fb404"
-dependencies = [
- "gl_generator",
 ]
 
 [[package]]
@@ -1150,11 +1152,11 @@ checksum = "3831453b3449ceb48b6d9c7ad7c96d5ea673e9b470a1dc578c2ce6521230884c"
 name = "platform_window_gfx"
 version = "0.1.0"
 dependencies = [
- "gl",
+ "core_renderer",
+ "core_window",
+ "glow",
  "glutin",
- "renderer",
  "wgpu",
- "window",
  "winit",
 ]
 
@@ -1205,10 +1207,6 @@ name = "redox_syscall"
 version = "0.1.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41cc0f7e4d5d4544e8861606a285bb08d3e70712ccc7d2b84d7c0ccfaf4b05ce"
-
-[[package]]
-name = "renderer"
-version = "0.1.0"
 
 [[package]]
 name = "rusttype"
@@ -1696,10 +1694,6 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
-
-[[package]]
-name = "window"
-version = "0.1.0"
 
 [[package]]
 name = "winit"

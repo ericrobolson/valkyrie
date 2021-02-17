@@ -13,5 +13,5 @@ wgpu = "0.7.0"
 glow = "0.7.2"
 
 # core deps
-window = {path = "../../window"}
-renderer = {path = "../../renderer"}
+core_window = {path = "../../core_window"}
+core_renderer = {path = "../../core_renderer"}

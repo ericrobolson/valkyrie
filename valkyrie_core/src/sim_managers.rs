@@ -1,6 +1,11 @@
-use timing::{Duration, Stopwatch};
-
-use crate::{ControlMessage, EngineMessage, Queue, Simulation, WindowControl};
+use crate::{
+    application::*,
+    data_structures::queue::Queue,
+    renderer::Renderer,
+    timing::{hz_to_duration, Duration, Stopwatch},
+    window,
+    window::{Renderable, WindowControl},
+};
 
 pub trait Config: Sized + Copy + Clone {
     fn sim_hz(&self) -> Option<u32>;
@@ -47,7 +52,7 @@ where
     Sim: Simulation<Cfg> + window::Renderable,
     Cfg: Config,
 {
-    fn render(&self, renderer: &mut dyn renderer::Renderer) {
+    fn render(&self, renderer: &mut dyn Renderer) {
         self.sim_manager.sim.render(renderer);
     }
 }
@@ -133,9 +138,9 @@ where
         };
 
         let time_keeper = Timekeeper {
-            tick_duration: timing::hz_to_duration(sim_hz),
-            accumulated_time: timing::Duration::from_secs(0),
-            simulation_stopwatch: timing::Stopwatch::new(),
+            tick_duration: hz_to_duration(sim_hz),
+            accumulated_time: Duration::from_secs(0),
+            simulation_stopwatch: Stopwatch::new(),
         };
 
         let sim = Sim::new(config);

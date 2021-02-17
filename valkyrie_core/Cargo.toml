@@ -7,13 +7,16 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-threading = {path="crates/threading"}
-file_io = {path="crates/file_io"}
-renderer = {path="crates/renderer"}
-window = {path="crates/window"}
-data_structures = {path = "crates/data_structures"}
 core_ecs = {path = "crates/core_ecs"}
-timing = {path = "crates/timing"}
+core_data_structures = {path = "crates/core_data_structures"}
+core_file_io = {path="crates/core_file_io"}
+core_threading = {path="crates/core_threading"}
+core_timing = {path = "crates/core_timing"}
+core_renderer = {path="crates/core_renderer"}
+
+
+
+core_window = {path="crates/core_window"}
 
 # Platform specific dependencies
 platform_file_io = {path="crates/_platform_specific/platform_file_io"}
