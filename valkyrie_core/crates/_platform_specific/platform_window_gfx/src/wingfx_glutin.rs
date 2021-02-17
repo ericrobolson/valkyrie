@@ -4,7 +4,7 @@ use glutin::window::WindowBuilder;
 use glutin::{ContextBuilder, ContextWrapper};
 
 use renderer::Renderer;
-use window::{InteractableSimulation, Window, WindowControl, WindowInput};
+use window::{Renderable, Simulation, Window, WindowControl, WindowInput};
 
 pub struct GlutinWindow {
     title: &'static str,
@@ -39,7 +39,7 @@ impl GlutinWindow {
 
 impl<Sim> Window<Sim> for GlutinWindow
 where
-    Sim: InteractableSimulation + 'static,
+    Sim: Simulation + Renderable + 'static,
 {
     /// Implementation of the 'main loop' that drives the window. Note: in implementations may need to make main_loop_function() mutable.
     fn execute(&mut self, mut simulation: Sim) {
@@ -78,13 +78,26 @@ where
                 None => {}
             }
 
-            match simulation.tick(ev, &mut glow_renderer) {
+            let mut queue_render = false;
+
+            match simulation.tick(ev) {
                 WindowControl::Ok => {
                     // Do nothing
                 }
                 WindowControl::Shutdown => {
                     *control_flow = ControlFlow::Exit;
                 }
+                WindowControl::Render => {
+                    queue_render = true;
+                }
+                WindowControl::UpdateRenderState => {
+                    simulation.render(&mut glow_renderer);
+                    queue_render = true;
+                }
+            }
+
+            if queue_render {
+                windowed_context.window().request_redraw();
             }
         });
     }

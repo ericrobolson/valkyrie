@@ -19,7 +19,7 @@ impl Default for Game {
 }
 
 impl GameImplementation<World> for Game {
-    fn tick(world: &mut World, messages: &[EngineMessage]) -> ControlMessage {
+    fn tick(&mut self, world: &mut World, messages: &[EngineMessage]) -> ControlMessage {
         println!("A tick! {:?}", 0);
 
         ControlMessage::Ok

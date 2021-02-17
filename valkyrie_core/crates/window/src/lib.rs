@@ -11,23 +11,28 @@ pub enum WindowInput {
 pub enum WindowControl {
     /// Do nothing, keep processing
     Ok,
+    /// Requests a render
+    Render,
+    /// Update Renderer
+    UpdateRenderState,
     /// Shut down
     Shutdown,
 }
 
-/// A trait a simulation must provide.
-pub trait InteractableSimulation {
-    fn tick(
-        &mut self,
-        input: Option<WindowInput>,
-        renderer: &mut dyn renderer::Renderer,
-    ) -> WindowControl;
+/// A tickable simulation.
+pub trait Simulation {
+    fn tick(&mut self, input: Option<WindowInput>) -> WindowControl;
+}
+
+/// A renderable simulation
+pub trait Renderable {
+    fn render(&self, renderer: &mut dyn renderer::Renderer);
 }
 
 ///  Implementation of a window
 pub trait Window<Sim>
 where
-    Sim: InteractableSimulation + 'static,
+    Sim: Simulation + Renderable + 'static,
 {
     /// Implementation of the 'main loop' that drives the window. Note: in implementations may need to make main_loop_function() mutable.
     fn execute(&mut self, simulation: Sim);

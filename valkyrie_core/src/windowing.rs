@@ -1,5 +1,5 @@
 pub use renderer::Renderer;
-use window::InteractableSimulation;
+use window::{Renderable, Simulation};
 pub use window::{Window, WindowControl, WindowInput};
 
 pub enum BackendType {
@@ -40,7 +40,7 @@ impl WinGfxBuilder {
 
     pub fn build<Sim>(&self) -> Result<Box<dyn Window<Sim>>, WinGfxBuildErr>
     where
-        Sim: InteractableSimulation + 'static,
+        Sim: Simulation + Renderable + 'static,
     {
         Ok(Box::new(
             platform_window_gfx::wingfx_glutin::GlutinWindow::new(
