@@ -7,7 +7,7 @@ mod entity_manager;
 pub use component_store::{ComponentStore, ComponentStoreError};
 pub use entity::Entity;
 pub use entity_manager::EntityManager;
-
+mod world;
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum WorldType {
     Client,

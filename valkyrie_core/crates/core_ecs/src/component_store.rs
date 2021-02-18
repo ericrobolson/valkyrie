@@ -6,11 +6,59 @@ pub enum ComponentStoreError {
     BufferOverflow,
 }
 
+pub trait BackingComponentStore {
+    fn destroy(&mut self, entity_to_destroy: Entity);
+    fn as_any_mut(&mut self) -> &mut dyn core::any::Any;
+}
+
+impl<Component> BackingComponentStore for ComponentStore<Component>
+where
+    Component: Sized + Default + Clone + 'static,
+{
+    /// Destroys a component for a given entity.
+    fn destroy(&mut self, entity_to_destroy: Entity) {
+        if self.active_components == 0 {
+            return;
+        }
+
+        // Take this element
+        let index_to_remove = match self.component_index(entity_to_destroy) {
+            Some(i) => i,
+            None => {
+                return;
+            }
+        };
+
+        // Swap with last
+        let last_element_index = self.active_components - 1;
+        self.components.swap(index_to_remove, last_element_index);
+
+        // Update the last element to point to the new index
+        for i in 0..self.entity_map.len() {
+            if let Some((entity_to_keep, index)) = self.entity_map[i] {
+                if index == last_element_index {
+                    // Found it, so update it to point to the swapped index and break out.
+                    self.entity_map[i] = Some((entity_to_keep, index_to_remove));
+                    break;
+                }
+            }
+        }
+
+        // Decrease active components + clear this map
+        self.entity_map[entity_to_destroy.id() as usize] = None;
+        self.active_components -= 1;
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+}
+
 pub struct ComponentStore<Component>
 where
     Component: Sized + Default + Clone,
 {
-    entity_map: Vec<Option<(Entity, usize)>>,
+    entity_map: Vec<Option<(Entity, usize)>>, // An option here would be using a hashmap instead of a Vec
     components: Vec<Component>,
     active_components: usize,
 }
@@ -76,40 +124,6 @@ where
     /// Returns the slice for the active components. Not tied to entities.
     pub fn components(&self) -> &[Component] {
         &self.components[0..self.active_components]
-    }
-
-    /// Destroys a component for a given entity.
-    pub(crate) fn destroy(&mut self, entity_to_destroy: Entity) {
-        if self.active_components == 0 {
-            return;
-        }
-
-        // Take this element
-        let index_to_remove = match self.component_index(entity_to_destroy) {
-            Some(i) => i,
-            None => {
-                return;
-            }
-        };
-
-        // Swap with last
-        let last_element_index = self.active_components - 1;
-        self.components.swap(index_to_remove, last_element_index);
-
-        // Update the last element to point to the new index
-        for i in 0..self.entity_map.len() {
-            if let Some((entity_to_keep, index)) = self.entity_map[i] {
-                if index == last_element_index {
-                    // Found it, so update it to point to the swapped index and break out.
-                    self.entity_map[i] = Some((entity_to_keep, index_to_remove));
-                    break;
-                }
-            }
-        }
-
-        // Decrease active components + clear this map
-        self.entity_map[entity_to_destroy.id() as usize] = None;
-        self.active_components -= 1;
     }
 
     /*

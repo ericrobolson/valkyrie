@@ -8,3 +8,6 @@ edition = "2018"
 
 [dependencies]
 core_data_structures = {path = "../core_data_structures"}
+
+
+specs = "0.16.1"
