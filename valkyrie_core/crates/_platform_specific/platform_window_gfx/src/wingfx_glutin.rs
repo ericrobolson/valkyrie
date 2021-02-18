@@ -3,7 +3,7 @@ use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
 use glutin::{ContextBuilder, ContextWrapper};
 
-use core_renderer::Renderer;
+use core_renderer::{BackendRenderer, Renderer};
 use core_window::{Renderable, Simulation, Window, WindowControl, WindowInput};
 
 pub struct GlutinWindow {
@@ -58,7 +58,7 @@ where
             })
         };
 
-        let mut glow_renderer = make_glow_renderer();
+        let mut renderer = core_renderer::make_renderer(Box::new(make_glow_renderer()));
 
         el.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Poll;
@@ -91,7 +91,7 @@ where
                     queue_render = true;
                 }
                 WindowControl::UpdateRenderState => {
-                    simulation.render(&mut glow_renderer);
+                    simulation.render(&mut renderer);
                     queue_render = true;
                 }
             }
@@ -103,9 +103,9 @@ where
     }
 }
 
-fn make_glow_renderer() -> impl Renderer {
+fn make_glow_renderer() -> impl BackendRenderer {
     GlowRenderer {}
 }
 
 struct GlowRenderer {}
-impl Renderer for GlowRenderer {}
+impl BackendRenderer for GlowRenderer {}

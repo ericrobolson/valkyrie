@@ -26,7 +26,7 @@ pub trait Simulation {
 
 /// A renderable simulation
 pub trait Renderable {
-    fn render(&self, renderer: &mut dyn core_renderer::Renderer);
+    fn render(&self, renderer: &mut core_renderer::Renderer);
 }
 
 ///  Implementation of a window

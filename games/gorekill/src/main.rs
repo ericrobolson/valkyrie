@@ -82,7 +82,7 @@ impl Simulation<ClientConfig> for Game {
 }
 
 impl Renderable for Game {
-    fn render(&self, renderer: &mut dyn Renderer) {
+    fn render(&self, renderer: &mut Renderer) {
         println!("RENDERING: {:?} - tick", self.tick);
         println!("Entity: {:?}", self.entity);
         println!("Component: {:?}", self.world.get::<Alive>(self.entity));

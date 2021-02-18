@@ -19,14 +19,9 @@ impl EntityManager {
     /// Creates a new instance of an EntityManager.
     pub fn new() -> Self {
         // Populate all generations to 0
-        let mut generations = Vec::with_capacity(MAX_ENTITIES);
-        for _ in 0..MAX_ENTITIES {
-            generations.push(0);
-        }
-
         Self {
             next_id: 0,
-            generations,
+            generations: vec![0; MAX_ENTITIES],
             free_entity_ids: Queue::new(MAX_ENTITIES),
         }
     }

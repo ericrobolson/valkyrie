@@ -52,7 +52,7 @@ where
     Sim: Simulation<Cfg> + window::Renderable,
     Cfg: Config,
 {
-    fn render(&self, renderer: &mut dyn Renderer) {
+    fn render(&self, renderer: &mut Renderer) {
         self.sim_manager.sim.render(renderer);
     }
 }

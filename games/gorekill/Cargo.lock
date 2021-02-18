@@ -290,6 +290,9 @@ version = "0.1.0"
 [[package]]
 name = "core_renderer"
 version = "0.1.0"
+dependencies = [
+ "core_ecs",
+]
 
 [[package]]
 name = "core_threading"
