@@ -7,4 +7,4 @@ mod entity_manager;
 pub use component_store::{ComponentStore, ComponentStoreError};
 pub use entity::Entity;
 mod world;
-pub use world::{World, WorldError};
+pub use world::{Component, World, WorldError};

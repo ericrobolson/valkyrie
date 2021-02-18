@@ -16,21 +16,25 @@ impl From<ComponentStoreError> for WorldError {
 #[derive(Debug)]
 pub struct World {
     entity_manager: EntityManager,
+    alive_entities: Vec<Entity>,
+    alive_index: usize,
     components: HashMap<ResourceId, Box<dyn BackingComponentStore>>,
 }
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-struct ResourceId {
+pub struct ResourceId {
     type_id: core::any::TypeId,
 }
 
+pub trait Component: Sized + Default + Clone + std::fmt::Debug + 'static {}
+
 impl ResourceId {
-    fn from<Component>() -> Self
+    fn from<C>() -> Self
     where
-        Component: Sized + Default + Clone + 'static,
+        C: Component,
     {
         Self {
-            type_id: core::any::TypeId::of::<Component>(),
+            type_id: core::any::TypeId::of::<C>(),
         }
     }
 }
@@ -39,37 +43,40 @@ impl World {
     /// Creates a new world
     pub fn new() -> Self {
         Self {
+            alive_entities: vec![Entity::new(0, 0); Entity::MAX_ENTITIES()],
+            alive_index: 0,
             entity_manager: EntityManager::new(),
             components: HashMap::new(),
         }
     }
 
     /// Registers a given component with the world. If the component has already been registered, does nothing.
-    pub fn register<Component>(&mut self, capacity: usize)
+    pub fn register<C>(&mut self, capacity: usize)
     where
-        Component: Sized + Default + std::fmt::Debug + Clone + 'static,
+        C: Component,
     {
-        let component_id = ResourceId::from::<Component>();
+        let component_id = ResourceId::from::<C>();
         if self.components.get(&component_id).is_none() {
-            self.components.insert(
-                component_id,
-                Box::new(ComponentStore::<Component>::new(capacity)),
-            );
+            self.components
+                .insert(component_id, Box::new(ComponentStore::<C>::new(capacity)));
         }
     }
 
     /// Adds a new entity
     pub fn add_entity(&mut self) -> Entity {
-        self.entity_manager.create()
+        let entity = self.entity_manager.create();
+        self.alive_entities[self.alive_index] = entity;
+        self.alive_index += 1;
+        entity
     }
 
     /// Retrieves a component for a given entity
-    pub fn get<Component>(&self, entity: Entity) -> Option<&Component>
+    pub fn get<C>(&self, entity: Entity) -> Option<&C>
     where
-        Component: Sized + Default + std::fmt::Debug + Clone + 'static,
+        C: Component,
     {
-        if let Some(store) = self.components.get(&ResourceId::from::<Component>()) {
-            match store.as_any().downcast_ref::<ComponentStore<Component>>() {
+        if let Some(store) = self.components.get(&ResourceId::from::<C>()) {
+            match store.as_any().downcast_ref::<ComponentStore<C>>() {
                 Some(component_store) => {
                     return component_store.get(entity);
                 }
@@ -80,16 +87,18 @@ impl World {
         None
     }
 
+    /// Returns a list of entities that are alive
+    pub fn entities(&self) -> &[Entity] {
+        &self.alive_entities[0..self.alive_index]
+    }
+
     /// Retrieves a mutable component for a given entity
-    pub fn get_mut<Component>(&mut self, entity: Entity) -> Option<&mut Component>
+    pub fn get_mut<C>(&mut self, entity: Entity) -> Option<&mut C>
     where
-        Component: Sized + Default + std::fmt::Debug + Clone + 'static,
+        C: Component,
     {
-        if let Some(store) = self.components.get_mut(&ResourceId::from::<Component>()) {
-            match store
-                .as_any_mut()
-                .downcast_mut::<ComponentStore<Component>>()
-            {
+        if let Some(store) = self.components.get_mut(&ResourceId::from::<C>()) {
+            match store.as_any_mut().downcast_mut::<ComponentStore<C>>() {
                 Some(component_store) => {
                     return component_store.get_mut(entity);
                 }
@@ -101,15 +110,12 @@ impl World {
     }
 
     /// Adds a component to the entity.
-    pub fn add<Component>(&mut self, entity: Entity) -> Result<&mut Component, WorldError>
+    pub fn add<C>(&mut self, entity: Entity) -> Result<&mut C, WorldError>
     where
-        Component: Sized + Default + std::fmt::Debug + Clone + 'static,
+        C: Component,
     {
-        if let Some(store) = self.components.get_mut(&ResourceId::from::<Component>()) {
-            match store
-                .as_any_mut()
-                .downcast_mut::<ComponentStore<Component>>()
-            {
+        if let Some(store) = self.components.get_mut(&ResourceId::from::<C>()) {
+            match store.as_any_mut().downcast_mut::<ComponentStore<C>>() {
                 Some(component_store) => match component_store.add(entity) {
                     Ok(c) => return Ok(c),
                     Err(e) => return Err(e.into()),
@@ -122,15 +128,12 @@ impl World {
     }
 
     /// Removes a component for a given entity
-    pub fn remove<Component>(&mut self, entity: Entity)
+    pub fn remove<C>(&mut self, entity: Entity)
     where
-        Component: Sized + std::fmt::Debug + Default + Clone + 'static,
+        C: Component,
     {
-        if let Some(store) = self.components.get_mut(&ResourceId::from::<Component>()) {
-            match store
-                .as_any_mut()
-                .downcast_mut::<ComponentStore<Component>>()
-            {
+        if let Some(store) = self.components.get_mut(&ResourceId::from::<C>()) {
+            match store.as_any_mut().downcast_mut::<ComponentStore<C>>() {
                 Some(component_store) => {
                     component_store.destroy(entity);
                 }
@@ -141,12 +144,28 @@ impl World {
 
     /// Kills a given entity
     pub fn kill(&mut self, entity: Entity) {
+        // Mark it as dead and swap it with the last element
+        {
+            let index_to_remove = self
+                .alive_entities
+                .iter()
+                .position(|e| e.id() == entity.id());
+
+            if self.alive_index > 0 && index_to_remove.is_some() {
+                let index_to_remove = index_to_remove.unwrap_or_default();
+                self.alive_entities
+                    .swap(index_to_remove, self.alive_index - 1);
+                self.alive_index -= 1;
+            }
+        }
+
+        // Kill it on all components
         for store in self.components.values_mut() {
             store.destroy(entity);
         }
     }
 }
-
+/*
 mod specs_test {
     use specs::prelude::*;
 
@@ -213,3 +232,4 @@ mod specs_test {
         dispatcher.dispatch(&mut world);
     }
 }
+ */

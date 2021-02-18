@@ -82,6 +82,14 @@ where
         }
     }
 
+    /// Returns the collection of entities
+    pub fn entities(&self) -> impl Iterator<Item = Option<&Entity>> {
+        self.entity_map.iter().map(|e| match e {
+            Some((e, _i)) => Some(e),
+            None => None,
+        })
+    }
+
     /// Returns the component index for the given entity
     fn component_index(&self, entity: Entity) -> Option<usize> {
         let index = entity.id() as usize;
@@ -130,6 +138,11 @@ where
     /// Returns the slice for the active components. Not tied to entities.
     pub fn components(&self) -> &[Component] {
         &self.components[0..self.active_components]
+    }
+
+    /// Returns a mutable list of the components
+    pub fn components_mut(&mut self) -> impl Iterator<Item = &mut Component> {
+        self.components[0..self.active_components].iter_mut()
     }
 
     /*
