@@ -1,3 +1,4 @@
+#[derive(Debug)]
 /// Creates a new Queue
 pub struct Queue<T> {
     items: Vec<T>,

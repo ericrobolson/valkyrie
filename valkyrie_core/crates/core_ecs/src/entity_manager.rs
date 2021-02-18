@@ -7,6 +7,7 @@ use core_data_structures::queue::Queue;
 
 const MINIMUM_FREE_INDICES: usize = 1024;
 
+#[derive(Debug)]
 /// Class that manages creating and deletion of entities.
 pub struct EntityManager {
     generations: Vec<Generation>,

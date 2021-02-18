@@ -1,18 +1,35 @@
 use valkyrie_core::{application::*, ecs::*};
 
-define_world! {
-    id: World,
-    components: [],
-    systems: []
-}
-
+#[derive(Debug)]
 pub struct Game {
     tick: usize,
+    world: World,
+    entity: Entity,
 }
 
 impl Simulation<ClientConfig> for Game {
     fn new(config: ClientConfig) -> Self {
-        Self { tick: 0 }
+        let mut world = World::new();
+
+        world.register::<bool>(100);
+
+        let entity = world.add_entity();
+        let entity = world.add_entity();
+        let entity = world.add_entity();
+        let entity = world.add_entity();
+
+        match world.add::<bool>(entity) {
+            Ok(component) => {
+                *component = true;
+            }
+            Err(e) => {}
+        }
+
+        Self {
+            world,
+            tick: 0,
+            entity,
+        }
     }
 
     fn tick(&mut self, messages: &[EngineMessage]) -> ControlMessage {
@@ -25,6 +42,8 @@ impl Simulation<ClientConfig> for Game {
 impl Renderable for Game {
     fn render(&self, renderer: &mut dyn Renderer) {
         println!("RENDERING: {:?} - tick", self.tick);
+        println!("Entity: {:?}", self.entity);
+        println!("Component: {:?}", self.world.get::<bool>(self.entity));
     }
 }
 

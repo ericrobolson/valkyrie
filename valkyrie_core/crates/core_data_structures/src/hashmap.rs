@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct HashMap<Key, Value> {
     inner_map: std::collections::HashMap<Key, Value>,
 }

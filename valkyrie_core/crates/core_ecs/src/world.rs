@@ -1,5 +1,5 @@
 use crate::component_store::BackingComponentStore;
-use crate::{ComponentStore, ComponentStoreError, Entity};
+use crate::{entity_manager::EntityManager, ComponentStore, ComponentStoreError, Entity};
 use core_data_structures::hashmap::HashMap;
 
 pub enum WorldError {
@@ -13,7 +13,9 @@ impl From<ComponentStoreError> for WorldError {
     }
 }
 
+#[derive(Debug)]
 pub struct World {
+    entity_manager: EntityManager,
     components: HashMap<ResourceId, Box<dyn BackingComponentStore>>,
 }
 
@@ -34,10 +36,18 @@ impl ResourceId {
 }
 
 impl World {
+    /// Creates a new world
+    pub fn new() -> Self {
+        Self {
+            entity_manager: EntityManager::new(),
+            components: HashMap::new(),
+        }
+    }
+
     /// Registers a given component with the world. If the component has already been registered, does nothing.
     pub fn register<Component>(&mut self, capacity: usize)
     where
-        Component: Sized + Default + Clone + 'static,
+        Component: Sized + Default + std::fmt::Debug + Clone + 'static,
     {
         let component_id = ResourceId::from::<Component>();
         if self.components.get(&component_id).is_none() {
@@ -48,10 +58,52 @@ impl World {
         }
     }
 
+    /// Adds a new entity
+    pub fn add_entity(&mut self) -> Entity {
+        self.entity_manager.create()
+    }
+
+    /// Retrieves a component for a given entity
+    pub fn get<Component>(&self, entity: Entity) -> Option<&Component>
+    where
+        Component: Sized + Default + std::fmt::Debug + Clone + 'static,
+    {
+        if let Some(store) = self.components.get(&ResourceId::from::<Component>()) {
+            match store.as_any().downcast_ref::<ComponentStore<Component>>() {
+                Some(component_store) => {
+                    return component_store.get(entity);
+                }
+                None => {}
+            }
+        }
+
+        None
+    }
+
+    /// Retrieves a mutable component for a given entity
+    pub fn get_mut<Component>(&mut self, entity: Entity) -> Option<&mut Component>
+    where
+        Component: Sized + Default + std::fmt::Debug + Clone + 'static,
+    {
+        if let Some(store) = self.components.get_mut(&ResourceId::from::<Component>()) {
+            match store
+                .as_any_mut()
+                .downcast_mut::<ComponentStore<Component>>()
+            {
+                Some(component_store) => {
+                    return component_store.get_mut(entity);
+                }
+                None => {}
+            }
+        }
+
+        None
+    }
+
     /// Adds a component to the entity.
     pub fn add<Component>(&mut self, entity: Entity) -> Result<&mut Component, WorldError>
     where
-        Component: Sized + Default + Clone + 'static,
+        Component: Sized + Default + std::fmt::Debug + Clone + 'static,
     {
         if let Some(store) = self.components.get_mut(&ResourceId::from::<Component>()) {
             match store
@@ -72,7 +124,7 @@ impl World {
     /// Removes a component for a given entity
     pub fn remove<Component>(&mut self, entity: Entity)
     where
-        Component: Sized + Default + Clone + 'static,
+        Component: Sized + std::fmt::Debug + Default + Clone + 'static,
     {
         if let Some(store) = self.components.get_mut(&ResourceId::from::<Component>()) {
             match store

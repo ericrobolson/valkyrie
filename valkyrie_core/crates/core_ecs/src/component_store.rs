@@ -1,19 +1,20 @@
 // Based on http://bitsquid.blogspot.com/2014/09/building-data-oriented-entity-system.html
-use crate::{entity::MAX_ENTITIES, Entity, EntityManager};
+use crate::{entity::MAX_ENTITIES, entity_manager::EntityManager, Entity};
 
 #[derive(PartialEq, Debug)]
 pub enum ComponentStoreError {
     BufferOverflow,
 }
 
-pub trait BackingComponentStore {
+pub trait BackingComponentStore: std::fmt::Debug {
     fn destroy(&mut self, entity_to_destroy: Entity);
+    fn as_any(&self) -> &dyn core::any::Any;
     fn as_any_mut(&mut self) -> &mut dyn core::any::Any;
 }
 
 impl<Component> BackingComponentStore for ComponentStore<Component>
 where
-    Component: Sized + Default + Clone + 'static,
+    Component: Sized + Default + Clone + std::fmt::Debug + 'static,
 {
     /// Destroys a component for a given entity.
     fn destroy(&mut self, entity_to_destroy: Entity) {
@@ -49,14 +50,19 @@ where
         self.active_components -= 1;
     }
 
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
 }
 
+#[derive(Debug)]
 pub struct ComponentStore<Component>
 where
-    Component: Sized + Default + Clone,
+    Component: Sized + Default + std::fmt::Debug + Clone,
 {
     entity_map: Vec<Option<(Entity, usize)>>, // An option here would be using a hashmap instead of a Vec
     components: Vec<Component>,
@@ -65,7 +71,7 @@ where
 
 impl<Component> ComponentStore<Component>
 where
-    Component: Sized + Default + Clone,
+    Component: Sized + Default + std::fmt::Debug + Clone,
 {
     /// Creates a new component store.
     pub fn new(component_capacity: usize) -> Self {
