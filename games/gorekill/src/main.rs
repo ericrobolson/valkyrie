@@ -1,4 +1,4 @@
-use valkyrie_core::{application::*, ecs::*};
+use valkyrie_core::{application::*, ecs::*, timing::Stopwatch};
 
 #[derive(Debug)]
 pub struct Game {
@@ -92,6 +92,8 @@ impl Renderable for Game {
         for entity in self.world.entities() {
             println!("Alive entity: {:?}", entity);
         }
+
+        renderer.dispatch();
     }
 }
 

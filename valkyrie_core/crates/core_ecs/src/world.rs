@@ -2,6 +2,7 @@ use crate::component_store::BackingComponentStore;
 use crate::{entity_manager::EntityManager, ComponentStore, ComponentStoreError, Entity};
 use core_data_structures::hashmap::HashMap;
 
+#[derive(Debug)]
 pub enum WorldError {
     ComponentStoreError(ComponentStoreError),
     ComponentNotRegistered,
@@ -90,6 +91,10 @@ impl World {
     /// Returns a list of entities that are alive
     pub fn entities(&self) -> &[Entity] {
         &self.alive_entities[0..self.alive_index]
+    }
+
+    pub fn entity_len(&self) -> usize {
+        self.alive_index
     }
 
     /// Retrieves a mutable component for a given entity
