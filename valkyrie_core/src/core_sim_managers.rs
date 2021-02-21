@@ -1,5 +1,5 @@
 use crate::{
-    application::*,
+    core_application::*,
     data_structures::queue::Queue,
     renderer::Renderer,
     timing::{hz_to_duration, Duration, Stopwatch},

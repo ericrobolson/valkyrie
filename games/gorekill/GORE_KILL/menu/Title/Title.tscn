@@ -1,0 +1,61 @@
+[gd_scene load_steps=2 format=2]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Node2D
+
+
+# Declare member variables here. Examples:
+# var a = 2
+# var b = \"text\"
+
+
+# Called when the node enters the scene tree for the first time.
+func _ready():
+	pass # Replace with function body.
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+#func _process(delta):
+#	pass
+
+
+func _on_BtnQuit_pressed():
+	get_tree().quit()
+
+"
+
+[node name="Menu" type="Node2D"]
+script = SubResource( 1 )
+
+[node name="MenuContainer" type="VBoxContainer" parent="."]
+margin_right = 1022.0
+margin_bottom = 596.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="BtnBegin" type="Button" parent="MenuContainer"]
+margin_right = 1022.0
+margin_bottom = 196.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+text = "Begin"
+
+[node name="BtnSettings" type="Button" parent="MenuContainer"]
+margin_top = 200.0
+margin_right = 1022.0
+margin_bottom = 396.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+text = "Settings"
+
+[node name="BtnQuit" type="Button" parent="MenuContainer"]
+margin_top = 400.0
+margin_right = 1022.0
+margin_bottom = 596.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+text = "Exit"
+[connection signal="pressed" from="MenuContainer/BtnQuit" to="." method="_on_BtnQuit_pressed"]

@@ -6,19 +6,29 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+all = ["application", "ecs", "file_io", "threading", "timing", "renderer", "window"]
+application = ["renderer", "window", "timing"]
+ecs = ["core_ecs"]
+file_io = ["core_file_io", "platform_file_io"]
+threading = ["core_threading", "platform_threading"]
+timing = ["core_timing"]
+renderer = ["core_renderer"]
+window = ["core_window", "platform_window_gfx"]
+
 [dependencies]
-core_ecs = {path = "crates/core_ecs"}
+# Required
 core_data_structures = {path = "crates/core_data_structures"}
-core_file_io = {path="crates/core_file_io"}
-core_threading = {path="crates/core_threading"}
-core_timing = {path = "crates/core_timing"}
-core_renderer = {path="crates/core_renderer"}
 
-
-
-core_window = {path="crates/core_window"}
+# Optionals
+core_ecs = {path = "crates/core_ecs", optional = true}
+core_file_io = {path="crates/core_file_io", optional = true}
+core_threading = {path="crates/core_threading", optional = true}
+core_timing = {path = "crates/core_timing", optional = true}
+core_renderer = {path="crates/core_renderer", optional = true}
+core_window = {path="crates/core_window", optional = true}
 
 # Platform specific dependencies
-platform_file_io = {path="crates/_platform_specific/platform_file_io"}
-platform_threading = {path="crates/_platform_specific/platform_threading"}
-platform_window_gfx = {path="crates/_platform_specific/platform_window_gfx"}
+platform_file_io = {path="crates/_platform_specific/platform_file_io", optional = true}
+platform_threading = {path="crates/_platform_specific/platform_threading", optional = true}
+platform_window_gfx = {path="crates/_platform_specific/platform_window_gfx", optional = true}

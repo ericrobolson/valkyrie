@@ -1,5 +1,5 @@
 use crate::{
-    sim_managers::{Config, RenderableSimManager, SimManager},
+    core_sim_managers::{Config, RenderableSimManager, SimManager},
     window, windowing,
 };
 
