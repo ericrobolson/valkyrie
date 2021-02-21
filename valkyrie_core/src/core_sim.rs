@@ -1,16 +1,11 @@
+use std::marker::PhantomData;
+
 use crate::{
     data_structures::queue::Queue,
     timing::{hz_to_duration, Stopwatch},
 };
 
 pub use crate::timing::Duration;
-
-pub trait Config: Sized + Copy + Clone {
-    /// Whether to use a fixed timestep for the game
-    fn fixed_timestep(&self) -> bool;
-    /// If `fixed_timestep()` == true, then execute at the given hz. Not providing one will default to 1hz.
-    fn sim_hz(&self) -> Option<u32>;
-}
 
 /// Messages a simulation may pass back to the engine
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -32,23 +27,26 @@ pub trait Simulation<Cfg, Msg> {
 pub struct SimulationExecutor<Sim, Cfg, Msg>
 where
     Sim: Simulation<Cfg, Msg>,
-    Cfg: Config,
 {
     use_fixed_timestep: bool,
     time_keeper: Timekeeper,
     sim: Sim,
     engine_queue: Queue<Msg>,
-    config: Cfg,
+    cfg_phantom: PhantomData<Cfg>,
 }
 
 impl<Sim, Cfg, Msg> SimulationExecutor<Sim, Cfg, Msg>
 where
     Sim: Simulation<Cfg, Msg>,
-    Cfg: Config,
 {
     /// Creates a new SimulationExecutor
-    pub fn new(max_engine_msgs: usize, config: Cfg) -> Self {
-        let sim_hz = match config.sim_hz() {
+    pub fn new(
+        max_engine_msgs: usize,
+        sim_hz: Option<u32>,
+        use_fixed_timestep: bool,
+        config: Cfg,
+    ) -> Self {
+        let sim_hz = match sim_hz {
             Some(hz) => hz.max(1),
             None => 0,
         };
@@ -62,11 +60,11 @@ where
         let sim = Sim::new(config);
 
         Self {
-            use_fixed_timestep: config.fixed_timestep(),
+            use_fixed_timestep,
             time_keeper,
             sim,
             engine_queue: Queue::new(max_engine_msgs),
-            config,
+            cfg_phantom: PhantomData,
         }
     }
 

@@ -22,6 +22,12 @@ func _ready():
 func _on_BtnQuit_pressed():
 	get_tree().quit()
 
+
+
+func _on_BtnBegin_pressed():
+	get_tree().change_scene(\"res://TestGorekill.tscn\")
+
+	pass # Replace with function body.
 "
 
 [node name="Menu" type="Node2D"]
@@ -58,4 +64,5 @@ margin_bottom = 596.0
 size_flags_horizontal = 3
 size_flags_vertical = 3
 text = "Exit"
+[connection signal="pressed" from="MenuContainer/BtnBegin" to="." method="_on_BtnBegin_pressed"]
 [connection signal="pressed" from="MenuContainer/BtnQuit" to="." method="_on_BtnQuit_pressed"]
