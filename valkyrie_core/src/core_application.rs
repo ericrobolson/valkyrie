@@ -1,5 +1,8 @@
+// TODO: need to fix up the sim. Not using a rust native solution right now, so avoiding refactoring.
+
 use crate::{
-    core_sim_managers::{Config, RenderableSimManager, SimManager},
+    core_sim_renderable::{RenderableSimManager, SimManager},
+    simulation::*,
     window, windowing,
 };
 
@@ -24,15 +27,6 @@ pub enum ControlMessage {
     RequestRedraw,
     RequestRenderStateUpdate,
     RequestServerChange,
-}
-
-/// Common functionality a simulation must implement.
-pub trait Simulation<Cfg> {
-    /// Creates a new simulation.
-    fn new(config: Cfg) -> Self;
-
-    /// A single 'tick' for an application.
-    fn tick(&mut self, messages: &[EngineMessage]) -> ControlMessage;
 }
 
 #[derive(Debug)]

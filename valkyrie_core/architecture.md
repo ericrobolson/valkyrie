@@ -8,6 +8,7 @@
 * `crates/` contains specific functionality implementations
 * `src/` ties together all crates into one engine
 
+# Everything is an opt in feature. 
 
 # OUT OF SCOPE FOR NOW:
 * Multi threaded engine

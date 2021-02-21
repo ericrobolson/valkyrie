@@ -17,7 +17,15 @@ pub mod application {
 #[cfg(feature = "application")]
 mod core_application;
 #[cfg(feature = "application")]
-mod core_sim_managers;
+mod core_sim_renderable;
+
+/// Fixed timestep simulation
+#[cfg(feature = "simulation")]
+pub mod simulation {
+    pub use crate::core_sim::*;
+}
+#[cfg(feature = "simulation")]
+mod core_sim;
 
 /// File input-output
 #[cfg(feature = "file_io")]
