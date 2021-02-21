@@ -1,0 +1,8 @@
+[gd_resource type="NativeScript" load_steps=2 format=2]
+
+[ext_resource path="res://native_libs/gorekill_libs.tres" type="GDNativeLibrary" id=1]
+
+[resource]
+resource_name = "GoreKill"
+class_name = "GoreKill"
+library = ExtResource( 1 )

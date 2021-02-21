@@ -1,4 +1,5 @@
 /// Common, generic data structures.
+#[cfg(feature = "data_structures")]
 pub mod data_structures {
     pub use core_data_structures::*;
 }
