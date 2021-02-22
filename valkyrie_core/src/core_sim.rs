@@ -68,6 +68,14 @@ where
         }
     }
 
+    pub fn sim(&self) -> &Sim {
+        &self.sim
+    }
+
+    pub fn sim_mut(&mut self) -> &mut Sim {
+        &mut self.sim
+    }
+
     /// Passes in the input message and attempts to execute.
     pub fn tick(&mut self, input: Option<Msg>) -> ControlMessage {
         let mut control_msg = ControlMessage::Ok;

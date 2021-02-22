@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=2]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Node2D
+
+var radius = 10
+var r = 255
+var g = 255
+var b = 255
+var a = 255
+
+func _draw():
+	draw_circle(position, radius, Color(r,g,b,a))
+"
+
+[node name="DebugSphere" type="Node2D"]
+script = SubResource( 1 )

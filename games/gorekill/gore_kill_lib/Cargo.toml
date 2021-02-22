@@ -11,4 +11,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 gdnative = "0.9.3"
+euclid = "0.22.1"
+
+
+
 valkyrie_core = {path = "../../../valkyrie_core", features = ["ecs", "simulation"]}
