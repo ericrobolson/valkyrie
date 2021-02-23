@@ -9,8 +9,10 @@ var g = 255
 var b = 255
 var a = 255
 
+var draw_position = Vector2(0,0)
+
 func _draw():
-	draw_circle(position, radius, Color(r,g,b,a))
+	draw_circle(draw_position, radius, Color(r,g,b,a))
 "
 
 [node name="DebugSphere" type="Node2D"]

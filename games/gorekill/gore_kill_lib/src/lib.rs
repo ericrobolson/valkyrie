@@ -1,6 +1,7 @@
 use euclid::vec2;
 use gdnative::prelude::*;
 
+use sim::Message;
 use valkyrie_core::simulation::*;
 
 mod sim;
@@ -13,6 +14,9 @@ mod sim;
 pub struct GoreKill {
     sim: SimulationExecutor<sim::GoreKillSim, sim::GoreKillConfig, sim::Message>,
     debug_nodes: Vec<Ref<gdnative::prelude::Node2D>>,
+    sprite_nodes: Vec<Ref<gdnative::prelude::Node2D>>,
+    update_render_state: bool,
+    should_exit: bool,
 }
 
 #[methods]
@@ -55,8 +59,39 @@ impl GoreKill {
             }
         }
 
+        let mut sprite_nodes = vec![];
+        {
+            let sprite = match load_scene("res://nodes/SpriteNode.tscn") {
+                Some(scene) => scene,
+                None => {
+                    godot_print!("Unable to load scene. Check name.");
+                    panic!();
+                }
+            };
+
+            // Add them to the struct, hiding them first.
+            for _ in 0..debug_shape_count {
+                match instance_scene::<Node2D>(&sprite) {
+                    Ok(instance) => {
+                        instance.hide();
+
+                        let shared = instance.into_shared();
+                        sprite_nodes.push(shared);
+                        owner.add_child(shared, false);
+                    }
+                    Err(e) => {
+                        godot_print!("{:?} making scene.", e);
+                        panic!();
+                    }
+                }
+            }
+        }
+
         Self {
             debug_nodes,
+            sprite_nodes,
+            update_render_state: false,
+            should_exit: false,
             sim: SimulationExecutor::new(max_engine_msgs, sim_hz, fixed_timestep, config),
         }
     }
@@ -64,31 +99,82 @@ impl GoreKill {
     #[export]
     fn _ready(&self, _owner: &Node2D) {}
 
-    #[export]
-    fn _process(&mut self, owner: &Node2D, delta: f32) {
+    fn tick(&mut self, input: Option<Message>) {
         match self.sim.tick(None) {
             ControlMessage::Ok => {
                 if self.sim.sim_mut().dirty {
-                    self.render();
+                    self.update_render_state = true;
                 }
                 self.sim.sim_mut().dirty = false;
-
-                // TODO: interpolation?
             }
             ControlMessage::ExitSim => {
                 godot_print!("Its exit!");
+                self.should_exit = true;
             }
         }
+    }
+
+    #[export]
+    fn _process(&mut self, owner: &Node2D, delta: f32) {
+        // Check all input
+        {
+            let input = Input::godot_singleton();
+
+            if Input::is_action_pressed(&input, "character_move_up") {
+                godot_print!("Pressed up!");
+                self.tick(Some(Message::Move(sim::MoveDirection::Up)))
+            }
+            if Input::is_action_pressed(&input, "character_move_down") {
+                self.tick(Some(Message::Move(sim::MoveDirection::Down)))
+            }
+            if Input::is_action_pressed(&input, "character_move_left") {
+                self.tick(Some(Message::Move(sim::MoveDirection::Left)))
+            }
+            if Input::is_action_pressed(&input, "character_move_right") {
+                self.tick(Some(Message::Move(sim::MoveDirection::Right)))
+            }
+
+            if Input::is_action_pressed(&input, "character_laser_attack") {
+                self.tick(Some(Message::Attack(sim::AttackType::LaserAttack)))
+            }
+            if Input::is_action_pressed(&input, "character_shot_attack") {
+                self.tick(Some(Message::Attack(sim::AttackType::ShotAttack)))
+            }
+            if Input::is_action_pressed(&input, "character_bomb_attack") {
+                godot_print!("TODO: Bomb atk");
+            }
+            if Input::is_action_pressed(&input, "character_turbo_attack") {
+                godot_print!("TODO: turbo atk");
+            }
+        }
+
+        // Tick even if no input pressed
+        self.tick(None);
+
+        if self.should_exit {
+            godot_print!("It should exit!");
+        }
+
+        self.render();
     }
 }
 
 impl GoreKill {
     fn render(&mut self) {
+        // TODO: interpolation?
+
+        if self.update_render_state {
+            self.update_render_state = false;
+        } else {
+            return;
+        }
+
         use sim::components;
 
         // Update render sim
         let sim = self.sim.sim();
         let mut debug_shape_index = 0;
+        let mut sprite_index = 0;
 
         for entity in sim.world.entities() {
             let entity = *entity;
@@ -105,14 +191,33 @@ impl GoreKill {
                             unsafe {
                                 let instance = self.debug_nodes[debug_shape_index].assume_safe();
                                 instance.show();
+                                instance.set(
+                                    "draw_position",
+                                    vec2(position.x as f32, position.y as f32),
+                                );
+                                instance.set("radius", collision_shape.radius);
+                                instance.update();
+                            }
+                            debug_shape_index += 1;
+                        }
+                    }
+                }
+            }
+
+            {
+                if let Some(position) = position {
+                    if let Some(collision_shape) = collision_shape {
+                        // Only update it if it's valid
+                        if sprite_index < self.sprite_nodes.len() {
+                            unsafe {
+                                let instance = self.sprite_nodes[sprite_index].assume_safe();
+                                instance.show();
                                 instance.set_global_position(vec2(
                                     position.x as f32,
                                     position.y as f32,
                                 ));
-
-                                instance.set("radius", collision_shape.radius);
                             }
-                            debug_shape_index += 1;
+                            sprite_index += 1;
                         }
                     }
                 }
