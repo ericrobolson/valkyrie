@@ -13,6 +13,11 @@ async fn index(data: web::Data<AppState>) -> impl Responder {
     HttpResponse::Ok().body(format!("Counted: {:?}", counter))
 }
 
+#[post("/token")]
+async fn token() -> impl Responder {
+    HttpResponse::Ok().body(format!("{:?}", uuid::Uuid::new_v4()))
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let addr = "127.0.0.1:8080";
@@ -27,6 +32,7 @@ async fn main() -> std::io::Result<()> {
             // Note: app_data is singular, data is per request
             .app_data(counter.clone())
             .service(index)
+            .service(token)
     })
     .bind(addr)?
     .run()

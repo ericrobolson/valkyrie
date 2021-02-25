@@ -8,3 +8,10 @@
 # Running
 * `cd hello`
 * `mix phx.server`
+
+# REPL
+* `iex.bat` or `iex`
+
+# Help
+* `h {}` returns help on an item in iex
+* `i {}` returns info on a specific item
