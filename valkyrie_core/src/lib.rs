@@ -57,3 +57,8 @@ mod window {
 }
 #[cfg(feature = "window")]
 mod windowing;
+
+#[cfg(feature = "voxels")]
+mod voxels {
+    pub use core_voxels::*;
+}

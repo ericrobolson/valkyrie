@@ -33,6 +33,7 @@ where
     sim: Sim,
     engine_queue: Queue<Msg>,
     cfg_phantom: PhantomData<Cfg>,
+    frame: u64,
 }
 
 impl<Sim, Cfg, Msg> SimulationExecutor<Sim, Cfg, Msg>
@@ -65,6 +66,7 @@ where
             sim,
             engine_queue: Queue::new(max_engine_msgs),
             cfg_phantom: PhantomData,
+            frame: 0,
         }
     }
 
@@ -72,8 +74,9 @@ where
         &self.sim
     }
 
-    pub fn sim_mut(&mut self) -> &mut Sim {
-        &mut self.sim
+    /// Returns the last updated frame. Will wrap to 0 when it reaches the max value.
+    pub fn last_updated_frame(&self) -> u64 {
+        self.frame
     }
 
     /// Passes in the input message and attempts to execute.
@@ -99,6 +102,7 @@ where
 
             // Tick the simulation until it has caught up
             while self.time_keeper.accumulated_time > self.time_keeper.tick_duration {
+                self.frame.wrapping_add(1);
                 self.time_keeper.accumulated_time -= self.time_keeper.tick_duration;
                 times_ticked += 1;
 
@@ -117,6 +121,7 @@ where
         }
         // Otherwise execute it
         else {
+            self.frame.wrapping_add(1);
             let delta_t = self.time_keeper.simulation_stopwatch.elapsed();
             control_msg = self.sim.tick(delta_t, &self.engine_queue.items());
             self.engine_queue.clear();
