@@ -1,40 +1,75 @@
+use Bitwise
+
 defmodule HandEval do
   @moduledoc """
   Documentation for `HandEval`.
   Based on Pokersource Poker Eval Evaluator https://www.codingthewheel.com/archives/poker-hand-evaluator-roundup/
   """
 
+  @ace_rank 14
+
+  defp is_straight_inner(cards) when length(cards) <= 1 do
+    true
+  end
+
+  defp is_straight_inner([first, second]) do
+    delta = first - second
+    delta == 1
+  end
+
+  defp is_straight_inner([first, second | tail]) do
+    is_straight_inner([first, second]) &&
+      is_straight_inner([second | tail])
+  end
+
+  def is_straight(hand) do
+    cards = Enum.sort(Enum.map(hand, fn {rank, _suit} -> rank end), :desc)
+
+    if length(cards) <= 1 do
+      true
+    else
+      [head | tail] = cards
+
+      # Do check for ace
+      if head == @ace_rank do
+        is_straight_inner([head | tail]) || is_straight_inner(tail ++ [1])
+      else
+        is_straight_inner(cards)
+      end
+    end
+  end
+
   @doc """
-  Creates a binary card representation for a card in the deck.
-  LSB is 2 of Hearts, MSB is Ace of Spades
+  Creates a card representation from a number, 0-51
   """
   def make_card(cardnum) do
-    suit_num = 13
+    cards_in_suit = 13
 
-    heart_boundary = suit_num + 1
-    diamond_boundary = heart_boundary + suit_num
-    clubs_boundary = diamond_boundary + suit_num
-    # spades_boundary = clubs_boundary + suit_num
+    suit =
+      cond do
+        cardnum < cards_in_suit -> :Clubs
+        cardnum < cards_in_suit * 2 -> :Diamonds
+        cardnum < cards_in_suit * 3 -> :Hearts
+        true -> :Spades
+      end
 
-    cond do
-      # Hearts
-      cardnum <= heart_boundary ->
-        <<0, 0, 0, cardnum>>
+    rank =
+      case rem(cardnum, 13) do
+        0 -> 2
+        1 -> 3
+        2 -> 4
+        3 -> 5
+        4 -> 6
+        5 -> 7
+        6 -> 8
+        7 -> 9
+        8 -> 10
+        9 -> 11
+        10 -> 12
+        11 -> 13
+        12 -> @ace_rank
+      end
 
-      # Diamonds
-      cardnum <= diamond_boundary ->
-        <<0, 0, cardnum - heart_boundary, 0>>
-
-      # Clubs
-      cardnum <= clubs_boundary ->
-        <<0, cardnum - diamond_boundary, 0, 0>>
-
-      # Spades
-      cardnum <= clubs_boundary ->
-        <<cardnum - clubs_boundary, 0, 0, 0>>
-
-      true ->
-        <<0, 0, 0, 0>>
-    end
+    {rank, suit}
   end
 end

@@ -2,99 +2,186 @@ defmodule HandEvalTest do
   use ExUnit.Case
   doctest HandEval
 
-  test "1 makes 2h" do
-    card = 1
-    expected = <<0, 0, 0, 1>>
-    assert HandEval.make_card(card) == expected
+  test "is_straight empty" do
+    hand = []
+
+    expected = true
+    actual = HandEval.is_straight(hand)
+    assert actual == expected
   end
 
-  test "2 makes 3h" do
-    card = 2
-    expected = <<0, 0, 0, 2>>
-    assert HandEval.make_card(card) == expected
+  test "is_straight single card" do
+    hand = [
+      HandEval.make_card(1)
+    ]
+
+    expected = true
+    actual = HandEval.is_straight(hand)
+    assert actual == expected
   end
 
-  test "3 makes 4h" do
-    card = 3
-    expected = <<0, 0, 0, 3>>
-    assert HandEval.make_card(card) == expected
+  test "is_straight two cards consecutive" do
+    hand = [
+      HandEval.make_card(2),
+      HandEval.make_card(1)
+    ]
+
+    expected = true
+    actual = HandEval.is_straight(hand)
+    assert actual == expected
   end
 
-  test "4 makes 5h" do
-    card = 4
-    expected = <<0, 0, 0, 4>>
-    assert HandEval.make_card(card) == expected
+  test "is_straight two cards not-consecutive" do
+    hand = [
+      HandEval.make_card(0),
+      HandEval.make_card(2)
+    ]
+
+    expected = false
+    actual = HandEval.is_straight(hand)
+    assert actual == expected
   end
 
-  test "5 makes 6h" do
-    card = 5
-    expected = <<0, 0, 0, 5>>
-    assert HandEval.make_card(card) == expected
+  test "is_straight three cards consecutive" do
+    hand = [
+      HandEval.make_card(3),
+      HandEval.make_card(2),
+      HandEval.make_card(4)
+    ]
+
+    expected = true
+    actual = HandEval.is_straight(hand)
+    assert actual == expected
   end
 
-  test "6 makes 7h" do
-    card = 6
-    expected = <<0, 0, 0, 6>>
-    assert HandEval.make_card(card) == expected
+  test "is_straight three cards not-consecutive" do
+    hand = [
+      HandEval.make_card(3),
+      HandEval.make_card(6),
+      HandEval.make_card(4)
+    ]
+
+    expected = false
+    actual = HandEval.is_straight(hand)
+    assert actual == expected
   end
 
-  test "7 makes 7h" do
-    card = 7
-    expected = <<0, 0, 0, 7>>
-    assert HandEval.make_card(card) == expected
+  test "is_straight four cards consecutive" do
+    hand = [
+      HandEval.make_card(3),
+      HandEval.make_card(2),
+      HandEval.make_card(4),
+      HandEval.make_card(1)
+    ]
+
+    expected = true
+    actual = HandEval.is_straight(hand)
+    assert actual == expected
   end
 
-  test "8 makes 8h" do
-    card = 8
-    expected = <<0, 0, 0, 8>>
-    assert HandEval.make_card(card) == expected
+  test "is_straight four cards not-consecutive" do
+    hand = [
+      HandEval.make_card(3),
+      HandEval.make_card(6),
+      HandEval.make_card(6),
+      HandEval.make_card(4)
+    ]
+
+    expected = false
+    actual = HandEval.is_straight(hand)
+    assert actual == expected
   end
 
-  test "9 makes 9h" do
-    card = 9
-    expected = <<0, 0, 0, 9>>
-    assert HandEval.make_card(card) == expected
+  test "is_straight five cards consecutive" do
+    hand = [
+      HandEval.make_card(3),
+      HandEval.make_card(5),
+      HandEval.make_card(2),
+      HandEval.make_card(4),
+      HandEval.make_card(1)
+    ]
+
+    expected = true
+    actual = HandEval.is_straight(hand)
+    assert actual == expected
   end
 
-  test "10 makes 10h" do
-    card = 10
-    expected = <<0, 0, 0, 10>>
-    assert HandEval.make_card(card) == expected
+  test "is_straight five cards not-consecutive" do
+    hand = [
+      HandEval.make_card(3),
+      HandEval.make_card(6),
+      HandEval.make_card(6),
+      HandEval.make_card(6),
+      HandEval.make_card(4)
+    ]
+
+    expected = false
+    actual = HandEval.is_straight(hand)
+    assert actual == expected
   end
 
-  test "11 makes Jh" do
-    card = 11
-    expected = <<0, 0, 0, 11>>
-    assert HandEval.make_card(card) == expected
+  test "is_straight five cards consecutive with ace high" do
+    hand = [
+      HandEval.make_card(8),
+      HandEval.make_card(9),
+      HandEval.make_card(10),
+      HandEval.make_card(11),
+      HandEval.make_card(12)
+    ]
+
+    expected = true
+    actual = HandEval.is_straight(hand)
+    assert actual == expected
   end
 
-  test "12 makes Qh" do
-    card = 12
-    expected = <<0, 0, 0, 12>>
-    assert HandEval.make_card(card) == expected
+  test "is_straight five cards consecutive with ace low" do
+    hand = [
+      HandEval.make_card(0),
+      HandEval.make_card(1),
+      HandEval.make_card(2),
+      HandEval.make_card(3),
+      HandEval.make_card(12)
+    ]
+
+    expected = true
+    actual = HandEval.is_straight(hand)
+    assert actual == expected
   end
 
-  test "13 makes Kh" do
-    card = 13
-    expected = <<0, 0, 0, 13>>
-    assert HandEval.make_card(card) == expected
+  def assert_card(card, expected, suit) do
+    actual = HandEval.make_card(card)
+    assert actual == {expected, suit}
   end
 
-  test "14 makes Ah" do
-    card = 14
-    expected = <<0, 0, 0, 14>>
-    assert HandEval.make_card(card) == expected
+  def assert_suit(offset, suit) do
+    assert_card(0 + offset, 2, suit)
+    assert_card(1 + offset, 3, suit)
+    assert_card(2 + offset, 4, suit)
+    assert_card(3 + offset, 5, suit)
+    assert_card(4 + offset, 6, suit)
+    assert_card(5 + offset, 7, suit)
+    assert_card(6 + offset, 8, suit)
+    assert_card(7 + offset, 9, suit)
+    assert_card(8 + offset, 10, suit)
+    assert_card(9 + offset, 11, suit)
+    assert_card(10 + offset, 12, suit)
+    assert_card(11 + offset, 13, suit)
+    assert_card(12 + offset, 14, suit)
   end
 
-  test "15 makes 2d" do
-    card = 15
-    expected = <<0, 0, 1, 0>>
-    assert HandEval.make_card(card) == expected
+  test "Clubs" do
+    assert_suit(0, :Clubs)
   end
 
-  test "16 makes 3d" do
-    card = 16
-    expected = <<0, 0, 2, 0>>
-    assert HandEval.make_card(card) == expected
+  test "Diamonds" do
+    assert_suit(13, :Diamonds)
+  end
+
+  test "Hearts" do
+    assert_suit(26, :Hearts)
+  end
+
+  test "Spades" do
+    assert_suit(39, :Spades)
   end
 end
