@@ -2,6 +2,104 @@ defmodule HandEvalTest do
   use ExUnit.Case
   doctest HandEval
 
+  # TODO: rest of hand comparisons DONE: Straight, Flush,
+
+  test "is_flush empty" do
+    hand = []
+    expected = true
+    actual = HandEval.is_flush(hand)
+    assert actual == expected
+  end
+
+  test "is_flush single card" do
+    hand = [HandEval.make_card(1)]
+    expected = true
+    actual = HandEval.is_flush(hand)
+    assert actual == expected
+  end
+
+  test "is_flush two cards same suit" do
+    hand = [HandEval.make_card(1), HandEval.make_card(1)]
+    expected = true
+    actual = HandEval.is_flush(hand)
+    assert actual == expected
+  end
+
+  test "is_flush two cards different suit" do
+    hand = [HandEval.make_card(1), HandEval.make_card(40)]
+    expected = false
+    actual = HandEval.is_flush(hand)
+    assert actual == expected
+  end
+
+  test "is_flush three cards same suit" do
+    hand = [HandEval.make_card(1), HandEval.make_card(1), HandEval.make_card(1)]
+    expected = true
+    actual = HandEval.is_flush(hand)
+    assert actual == expected
+  end
+
+  test "is_flush three cards different suit" do
+    hand = [HandEval.make_card(1), HandEval.make_card(40), HandEval.make_card(41)]
+    expected = false
+    actual = HandEval.is_flush(hand)
+    assert actual == expected
+  end
+
+  test "is_flush four cards same suit" do
+    hand = [
+      HandEval.make_card(1),
+      HandEval.make_card(1),
+      HandEval.make_card(1),
+      HandEval.make_card(2)
+    ]
+
+    expected = true
+    actual = HandEval.is_flush(hand)
+    assert actual == expected
+  end
+
+  test "is_flush four cards different suit" do
+    hand = [
+      HandEval.make_card(1),
+      HandEval.make_card(40),
+      HandEval.make_card(50),
+      HandEval.make_card(41)
+    ]
+
+    expected = false
+    actual = HandEval.is_flush(hand)
+    assert actual == expected
+  end
+
+  test "is_flush five cards same suit" do
+    hand = [
+      HandEval.make_card(1),
+      HandEval.make_card(1),
+      HandEval.make_card(1),
+      HandEval.make_card(1),
+      HandEval.make_card(2)
+    ]
+
+    expected = true
+    actual = HandEval.is_flush(hand)
+    assert actual == expected
+  end
+
+  test "is_flush five cards different suit" do
+    hand = [
+      HandEval.make_card(1),
+      HandEval.make_card(40),
+      HandEval.make_card(40),
+      HandEval.make_card(50),
+      HandEval.make_card(41)
+    ]
+
+    expected = false
+    actual = HandEval.is_flush(hand)
+    assert actual == expected
+  end
+
   test "is_straight empty" do
     hand = []
 

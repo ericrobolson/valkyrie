@@ -8,6 +8,23 @@ defmodule HandEval do
 
   @ace_rank 14
 
+  defp is_flush_inner([a, b]) do
+    a == b
+  end
+
+  defp is_flush_inner([a, b | tail]) do
+    is_flush_inner([a, b]) && is_flush_inner([b] ++ tail)
+  end
+
+  defp is_flush_inner(cards) when length(cards) <= 1 do
+    true
+  end
+
+  def is_flush(hand) do
+    cards = Enum.sort(Enum.map(hand, fn {_rank, suit} -> suit end), :desc)
+    is_flush_inner(cards)
+  end
+
   defp is_straight_inner(cards) when length(cards) <= 1 do
     true
   end
