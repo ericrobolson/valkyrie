@@ -1,0 +1,8 @@
+#lang racket
+
+
+; Prints a line to STD out
+(define (print-ln data) (display data))
+
+; Reads a line from STD in
+(define (read-ln) (read-line))
