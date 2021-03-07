@@ -1,0 +1,23 @@
+#lang racket
+
+
+;;; Card Game Bytecode
+;;; Stack based
+;;; Maybe for GFX, do some sort of procedural generation with fractals based on the card?
+    
+ (define SinCollector
+  '(
+    (name "Sin Collector")
+    (cost 1c 1w 1b)
+    (type creature)
+    (races Human Creature)
+    (flavor "That must weigh heavily on your soul. Let me purge it for you.")
+    (attack 2)
+    (defence 1)
+    (scripts (
+      (enters-battlefield this target opponent 1 reveals-hand you choose instant sorcery exile-it)
+      ))))
+
+
+(define (script-to-display script)
+  (display "TODO"))
