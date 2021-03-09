@@ -40,6 +40,8 @@ pub mod timing {
 
 /// Core renderer functionality
 pub mod renderer {
+    pub use core_renderer::Camera;
+    pub use core_renderer::RenderCommand;
     pub use core_renderer::Renderer;
 }
 

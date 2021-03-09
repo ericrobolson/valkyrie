@@ -14,12 +14,14 @@ impl BackendRenderer for WgpuRenderer {
     fn set_render_pass(&mut self, commands: &Queue<core_renderer::RenderCommand>) {
         for command in commands.items() {
             match command {
-                core_renderer::RenderCommand::UpdateCamera => {
+                core_renderer::RenderCommand::UpdateCamera(camera) => {
                     println!("update camera");
                 }
             }
         }
     }
+
+    fn resize(&mut self, w: u32, h: u32) {}
 }
 
 impl Drop for WgpuRenderer {

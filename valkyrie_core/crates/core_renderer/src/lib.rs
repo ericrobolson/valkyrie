@@ -2,11 +2,25 @@
 // Does things at the scene level, to allow individual backends to handle what's going on.
 
 use core_data_structures::queue::Queue;
+use core_math::{Mat4, Vec3};
 
 const RENDER_COMMAND_CAPACITY: usize = 256;
 
+#[derive(Default)]
+pub struct Camera {
+    pub eye: Vec3,
+    pub target: Vec3,
+    pub up: Option<Vec3>,
+}
+
+impl Camera {
+    pub fn to_mat4(&self) -> Mat4 {
+        Mat4::view_matrix(self.eye, self.target, self.up.unwrap_or(Vec3::unit_y()))
+    }
+}
+
 pub enum RenderCommand {
-    UpdateCamera,
+    UpdateCamera(Camera),
 }
 
 /// Top level renderer. Functionality based.
@@ -48,6 +62,24 @@ impl Renderer {
         &mut self.render_pass
     }
 
+    pub fn resize(&mut self, w: u32, h: u32) {
+        let (w, h) = {
+            let mut w = w;
+            let mut h = h;
+            if w == 0 {
+                w = 1;
+            }
+
+            if h == 0 {
+                h = 1;
+            }
+
+            (w, h)
+        };
+
+        self.backend.resize(w, h);
+    }
+
     /// Dispatches the render pass.
     pub fn dispatch(&mut self) {
         if self.dirty {
@@ -63,6 +95,9 @@ impl Renderer {
 pub trait BackendRenderer {
     /// Dispatches all queued commands and draws to the screen
     fn dispatch(&mut self);
+
+    /// Resizes the window
+    fn resize(&mut self, w: u32, h: u32);
 
     /// Updates the render commands to execute. Takes a functional approach, where this is the new frame.
     fn set_render_pass(&mut self, commands: &Queue<RenderCommand>);

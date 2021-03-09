@@ -1,5 +1,7 @@
 // RE4magined
 use valkyrie_core::application::*;
+use valkyrie_core::math::*;
+use valkyrie_core::renderer::*;
 
 struct Re4magined {}
 
@@ -28,7 +30,15 @@ impl Simulation<Cfg, Msg> for Re4magined {
 }
 
 impl Renderable for Re4magined {
-    fn render(&self, renderer: &mut valkyrie_core::renderer::Renderer) {}
+    fn render(&self, renderer: &mut Renderer) {
+        renderer
+            .create_render_pass()
+            .add(RenderCommand::UpdateCamera(Camera {
+                eye: Vec3::default(),
+                target: Vec3::default(),
+                up: None,
+            }));
+    }
 }
 
 fn main() {

@@ -4,6 +4,7 @@ use core_window::Window;
 
 const MAX_ENGINE_MSGS: usize = 256;
 
+pub use core_renderer::{RenderCommand, Renderer};
 pub use core_simulation::{ControlMessage, Input, Simulation, ValkErr};
 pub use core_window::Renderable;
 pub use window_builder::BackendType;

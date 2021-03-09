@@ -276,6 +276,7 @@ dependencies = [
 name = "core_application"
 version = "0.1.0"
 dependencies = [
+ "core_renderer",
  "core_simulation",
  "core_window",
  "platform_window_gfx",
@@ -1231,6 +1232,7 @@ version = "0.1.0"
 dependencies = [
  "core_conversions",
  "core_data_structures",
+ "core_math",
  "core_renderer",
  "core_simulation",
  "core_window",

@@ -19,5 +19,6 @@ wgpu = "0.7.0"
 core_data_structures = {path = "../../core_data_structures"}
 core_conversions = {path = "../../core_conversions"}
 core_simulation = {path = "../../core_simulation"}
+core_math = {path = "../../core_math"}
 core_window = {path = "../../core_window"}
 core_renderer = {path = "../../core_renderer"}

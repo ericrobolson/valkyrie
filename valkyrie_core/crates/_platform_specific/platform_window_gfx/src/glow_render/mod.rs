@@ -1,31 +1,19 @@
 use core_data_structures::queue::Queue;
+use core_math::{Mat4, Vec3};
 use core_renderer::{BackendRenderer, Renderer};
 use glow::*;
 use glutin::{ContextWrapper, PossiblyCurrent};
 
-const VERT_SHADER: &'static str = r#"
-            layout (location = 0) in vec3 aPos;
+const UNIFORM_SCREEN_SIZE: &'static str = "u_screen_size";
 
-            void main()
-            {
-                gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
-            }
-            "#;
-
-const FRAG_SHADER: &'static str = r#"
-            uniform vec2 u_screen_size;
-
-            out vec4 frag_color;
-            
-            void main()
-            {
-                // Normalize frag coords
-                vec2 frag_coord = gl_FragCoord.xy / u_screen_size; // subtract 1 mult 2 to normalize to -1..1
-
-                frag_color = vec4(frag_coord, 0.0, 1.0f);
-            } "#;
+const UNIFORM_VIEW_EYE: &'static str = "u_view_eye";
+const UNIFORM_VIEW_TARGET: &'static str = "u_view_target";
+const UNIFORM_VIEW_UP: &'static str = "u_view_up";
+const UNIFORM_VIEW_MATRIX: &'static str = "u_view_matrix";
 
 pub fn make(
+    w: u32,
+    h: u32,
     windowed_context: &ContextWrapper<PossiblyCurrent, glutin::window::Window>,
 ) -> impl BackendRenderer {
     // Verts are x,y,z
@@ -45,7 +33,7 @@ pub fn make(
     let num_fullscreen_verts = fullscreen_verts.len() / num_fullscreen_vert_attr;
 
     // TODO: make safe
-    let (gl, fullscreen_vertex_array, fullscreen_vbo, screen_size_ubo, program) = unsafe {
+    let (gl, fullscreen_vertex_array, fullscreen_vbo, program) = unsafe {
         // Create context
         let gl = glow::Context::from_loader_function(|s| {
             windowed_context.get_proc_address(s) as *const _
@@ -83,7 +71,8 @@ pub fn make(
         // Create program + link shaders
         let program = gl.create_program().expect("Cannot create program");
 
-        let (vertex_shader_source, fragment_shader_source) = (VERT_SHADER, FRAG_SHADER);
+        let vertex_shader_source = std::str::from_utf8(include_bytes!("shader.vert")).unwrap();
+        let fragment_shader_source = std::str::from_utf8(include_bytes!("shader.frag")).unwrap();
 
         let shader_sources = [
             (glow::VERTEX_SHADER, vertex_shader_source),
@@ -118,28 +107,12 @@ pub fn make(
 
         gl.use_program(Some(program)); // Need to call before setting uniforms
 
-        // Create screensize ubo
-        let screen_size_ubo = gl.create_buffer().unwrap();
-        let uniform = gl.get_uniform_location(program, "u_screen_size");
-        match uniform {
-            Some(u) => {
-                println!("set");
-
-                gl.uniform_2_f32(Some(&u), 1920.0, 1080.0);
-            }
-            None => {
-                println!("NONE");
-            }
-        }
+        // Update UBOs
+        resize_screen(program, &gl, w, h);
+        set_camera(program, &gl, &core_renderer::Camera::default());
 
         // Return
-        (
-            gl,
-            fullscreen_vertex_array,
-            fullscreen_vbo,
-            screen_size_ubo,
-            program,
-        )
+        (gl, fullscreen_vertex_array, fullscreen_vbo, program)
     };
 
     GlowRenderer {
@@ -148,7 +121,70 @@ pub fn make(
         fullscreen_vertex_array,
         fullscreen_vbo,
         num_fullscreen_verts,
-        screen_size_ubo,
+    }
+}
+
+/// Updates the given uniform
+fn uniform<F>(gl: &Context, program: u32, name: &'static str, op: F)
+where
+    F: Fn(u32) -> (),
+{
+    unsafe {
+        let u = gl.get_uniform_location(program, name);
+        match u {
+            Some(u) => {
+                op(u);
+            }
+            None => {
+                println!(
+                    "Unable to find uniform {:?}. Likely it is unbound or unused.",
+                    name
+                );
+            }
+        }
+    }
+}
+
+fn set_camera(program: u32, gl: &Context, camera: &core_renderer::Camera) {
+    unsafe {
+        gl.use_program(Some(program)); // Need to call before setting uniforms
+
+        // Update eye
+        let (x, y, z) = camera.eye.into();
+        uniform(gl, program, UNIFORM_VIEW_EYE, |u| {
+            gl.uniform_3_f32(Some(&u), x, y, z)
+        });
+
+        // Update target
+        let (x, y, z) = camera.target.into();
+        uniform(gl, program, UNIFORM_VIEW_TARGET, |u| {
+            gl.uniform_3_f32(Some(&u), x, y, z)
+        });
+
+        // Update up
+        let (x, y, z) = camera.up.unwrap_or(Vec3::unit_y()).into();
+        uniform(gl, program, UNIFORM_VIEW_UP, |u| {
+            gl.uniform_3_f32(Some(&u), x, y, z)
+        });
+
+        // Update view matrix
+        uniform(gl, program, UNIFORM_VIEW_MATRIX, |u| {
+            gl.uniform_matrix_4_f32_slice(Some(&u), false, camera.to_mat4().as_slice())
+        });
+    }
+}
+
+fn resize_screen(program: u32, gl: &Context, w: u32, h: u32) {
+    unsafe {
+        gl.use_program(Some(program)); // Need to call before setting uniforms
+
+        // Create screensize ubo
+        uniform(gl, program, UNIFORM_SCREEN_SIZE, |u| {
+            gl.uniform_2_f32(Some(&u), w as f32, h as f32);
+        });
+
+        // Resize viewport
+        gl.viewport(0, 0, w as i32, h as i32);
     }
 }
 
@@ -157,7 +193,6 @@ struct GlowRenderer {
     program: u32,
     fullscreen_vertex_array: u32,
     fullscreen_vbo: u32,
-    screen_size_ubo: u32,
     num_fullscreen_verts: usize,
 }
 impl BackendRenderer for GlowRenderer {
@@ -180,11 +215,15 @@ impl BackendRenderer for GlowRenderer {
     fn set_render_pass(&mut self, commands: &Queue<core_renderer::RenderCommand>) {
         for command in commands.items() {
             match command {
-                core_renderer::RenderCommand::UpdateCamera => {
-                    println!("update camera");
+                core_renderer::RenderCommand::UpdateCamera(camera) => {
+                    set_camera(self.program, &self.gl, camera);
                 }
             }
         }
+    }
+
+    fn resize(&mut self, w: u32, h: u32) {
+        resize_screen(self.program, &self.gl, w, h);
     }
 }
 

@@ -9,4 +9,6 @@ edition = "2018"
 [dependencies]
 core_simulation = {path = "../core_simulation"}
 core_window = {path = "../core_window"}
+core_renderer = {path = "../core_renderer"}
+
 platform_window_gfx = {path="../_platform_specific/platform_window_gfx"}

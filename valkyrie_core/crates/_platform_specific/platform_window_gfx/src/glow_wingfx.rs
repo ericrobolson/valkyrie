@@ -61,7 +61,8 @@ where
 
         let windowed_context = unsafe { windowed_context.make_current().unwrap() };
 
-        let mut renderer = core_renderer::make_renderer(Box::new(make(&windowed_context)));
+        let mut renderer =
+            core_renderer::make_renderer(Box::new(make(self.w, self.h, &windowed_context)));
         let mut last_frame = u64::MAX;
 
         el.run(move |event, _, control_flow| {
@@ -78,7 +79,10 @@ where
                         }
                         WindowMsg::Shutdown => *control_flow = ControlFlow::Exit,
                         WindowMsg::Resize { w, h } => {
-                            windowed_context.resize(glutin::dpi::PhysicalSize::new(*w, *h));
+                            let w = *w;
+                            let h = *h;
+                            windowed_context.resize(glutin::dpi::PhysicalSize::new(w, h));
+                            renderer.resize(w, h);
                             windowed_context.window().request_redraw();
                         }
                     }
