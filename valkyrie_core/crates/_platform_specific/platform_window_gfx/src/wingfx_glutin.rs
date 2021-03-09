@@ -4,7 +4,8 @@ use glutin::window::WindowBuilder;
 use glutin::{ContextBuilder, ContextWrapper};
 
 use core_renderer::{BackendRenderer, Renderer};
-use core_window::{Renderable, Simulation, Window, WindowControl, WindowInput};
+use core_simulation::{ControlMessage, Input, Simulation, SimulationExecutor, WindowMsg};
+use core_window::{Renderable, Window};
 
 pub struct GlutinWindow {
     title: &'static str,
@@ -17,32 +18,31 @@ impl GlutinWindow {
         Self { title, w, h }
     }
 
-    fn handle_event<T>(event: Event<T>, control_flow: &mut ControlFlow) -> Option<WindowInput> {
+    fn handle_event<T>(event: Event<T>, control_flow: &mut ControlFlow) -> Option<WindowMsg> {
         match event {
-            Event::LoopDestroyed => Some(WindowInput::Shutdown),
+            Event::LoopDestroyed => None,
             Event::WindowEvent { event, .. } => match event {
-                WindowEvent::Resized(physical_size) => Some(WindowInput::Resize {
-                    w: physical_size.width,
-                    h: physical_size.height,
-                }),
+                WindowEvent::Resized(physical_size) => None,
                 WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
-                    Some(WindowInput::Shutdown)
+                    None
                 }
                 _ => None,
             },
-            Event::RedrawRequested(_) => Some(WindowInput::RedrawRequested),
+            Event::RedrawRequested(_) => None,
             _ => None,
         }
     }
 }
 
-impl<Sim> Window<Sim> for GlutinWindow
+impl<Sim, Cfg, Msg> Window<Sim, Cfg, Msg> for GlutinWindow
 where
-    Sim: Simulation + Renderable + 'static,
+    Sim: Simulation<Cfg, Msg> + Renderable + 'static,
+    Cfg: 'static,
+    Msg: 'static,
 {
     /// Implementation of the 'main loop' that drives the window. Note: in implementations may need to make main_loop_function() mutable.
-    fn execute(&mut self, mut simulation: Sim) {
+    fn execute(&mut self, mut executor: SimulationExecutor<Sim, Cfg, Msg>) {
         let el = glutin::event_loop::EventLoop::new();
         let wb = glutin::window::WindowBuilder::new()
             .with_title(self.title)
@@ -52,6 +52,7 @@ where
             .build_windowed(wb, &el)
             .unwrap();
         let windowed_context = unsafe { windowed_context.make_current().unwrap() };
+
         let context = unsafe {
             glow::Context::from_loader_function(|s| {
                 windowed_context.get_proc_address(s) as *const _
@@ -59,44 +60,43 @@ where
         };
 
         let mut renderer = core_renderer::make_renderer(Box::new(make_glow_renderer()));
+        let mut last_frame = u64::MAX;
 
         el.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Poll;
 
             let ev = Self::handle_event(event, control_flow);
 
-            match ev {
-                Some(ev) => match ev {
-                    WindowInput::Shutdown => *control_flow = ControlFlow::Exit,
-                    WindowInput::RedrawRequested => {
-                        windowed_context.swap_buffers().unwrap();
+            let ev = match &ev {
+                Some(ev) => {
+                    match ev {
+                        WindowMsg::RedrawRequested => {
+                            windowed_context.swap_buffers().unwrap();
+                        }
+                        WindowMsg::Shutdown => *control_flow = ControlFlow::Exit,
+                        WindowMsg::Resize { w, h } => {
+                            windowed_context.resize(glutin::dpi::PhysicalSize::new(*w, *h));
+                            windowed_context.window().request_redraw();
+                        }
                     }
-                    WindowInput::Resize { w, h } => {
-                        windowed_context.resize(glutin::dpi::PhysicalSize::new(w, h));
-                    }
-                },
-                None => {}
-            }
 
-            let mut queue_render = false;
-
-            match simulation.tick(ev) {
-                WindowControl::Ok => {
-                    // Do nothing
+                    Some(Input::WindowMsg(*ev))
                 }
-                WindowControl::Shutdown => {
+                None => None,
+            };
+
+            match executor.tick(ev) {
+                ControlMessage::Ok => {}
+                ControlMessage::ExitSim => {
                     *control_flow = ControlFlow::Exit;
                 }
-                WindowControl::Render => {
-                    queue_render = true;
-                }
-                WindowControl::UpdateRenderState => {
-                    simulation.render(&mut renderer);
-                    queue_render = true;
-                }
             }
 
-            if queue_render {
+            // If state was changed update render state + request redraw
+            if executor.last_updated_frame() != last_frame {
+                last_frame = executor.last_updated_frame();
+                executor.sim().render(&mut renderer);
+
                 windowed_context.window().request_redraw();
             }
         });

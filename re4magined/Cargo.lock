@@ -277,6 +277,8 @@ name = "core_application"
 version = "0.1.0"
 dependencies = [
  "core_simulation",
+ "core_window",
+ "platform_window_gfx",
 ]
 
 [[package]]
@@ -326,6 +328,7 @@ name = "core_window"
 version = "0.1.0"
 dependencies = [
  "core_renderer",
+ "core_simulation",
 ]
 
 [[package]]
@@ -1237,6 +1240,7 @@ name = "platform_window_gfx"
 version = "0.1.0"
 dependencies = [
  "core_renderer",
+ "core_simulation",
  "core_window",
  "glow",
  "glutin",

@@ -1,10 +1,19 @@
 // RE4magined
-
 use valkyrie_core::application::*;
 
 struct Re4magined {}
 
 struct Cfg {}
+
+impl Cfg {
+    pub fn new() -> SimulationOptions<Self> {
+        SimulationOptions {
+            use_fixed_timestep: true,
+            sim_hz: Some(60),
+            cfg: Self {},
+        }
+    }
+}
 
 enum Msg {}
 
@@ -16,10 +25,23 @@ impl Simulation<Cfg, Msg> for Re4magined {
     fn tick(&mut self, delta_t: std::time::Duration, messages: &[Input<Msg>]) -> ControlMessage {
         println!("Hello, world!");
 
-        ControlMessage::ExitSim
+        ControlMessage::Ok
+    }
+}
+
+impl Renderable for Re4magined {
+    fn render(&self, renderer: &mut valkyrie_core::renderer::Renderer) {
+        println!("a render!");
     }
 }
 
 fn main() {
-    run_server::<Re4magined, Cfg, Msg>(Cfg {}).unwrap();
+    run_client::<Re4magined, Cfg, Msg>("Title", 640, 320, Cfg::new()).unwrap();
+    return;
+    run_server::<Re4magined, Cfg, Msg>(SimulationOptions {
+        use_fixed_timestep: true,
+        sim_hz: Some(60),
+        cfg: Cfg {},
+    })
+    .unwrap();
 }

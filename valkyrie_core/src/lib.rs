@@ -33,6 +33,7 @@ pub mod timing {
     pub use core_timing::*;
 }
 
+/// Core renderer functionality
 pub mod renderer {
     pub use core_renderer::Renderer;
 }
@@ -40,7 +41,6 @@ pub mod renderer {
 mod window {
     pub use core_window::*;
 }
-mod windowing;
 
 mod voxels {
     pub use core_voxels::*;

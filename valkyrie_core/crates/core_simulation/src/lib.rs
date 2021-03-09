@@ -18,6 +18,14 @@ pub enum ControlMessage {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Input<UserMsg> {
     UserMsg(UserMsg),
+    WindowMsg(WindowMsg),
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum WindowMsg {
+    Shutdown,
+    RedrawRequested,
+    Resize { w: u32, h: u32 },
 }
 
 /// Common functionality a simulation must implement.
