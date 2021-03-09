@@ -23,16 +23,12 @@ impl Simulation<Cfg, Msg> for Re4magined {
     }
 
     fn tick(&mut self, delta_t: std::time::Duration, messages: &[Input<Msg>]) -> ControlMessage {
-        println!("Hello, world!");
-
         ControlMessage::Ok
     }
 }
 
 impl Renderable for Re4magined {
-    fn render(&self, renderer: &mut valkyrie_core::renderer::Renderer) {
-        println!("a render!");
-    }
+    fn render(&self, renderer: &mut valkyrie_core::renderer::Renderer) {}
 }
 
 fn main() {
