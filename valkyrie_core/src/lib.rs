@@ -18,6 +18,11 @@ pub mod simulation {
     pub use core_simulation::*;
 }
 
+/// Core math crate
+pub mod math {
+    pub use core_math::*;
+}
+
 /// File input-output
 pub mod file_io {
     pub use core_file_io::*;

@@ -1,3 +1,4 @@
+use core_data_structures::queue::Queue;
 use core_renderer::{BackendRenderer, Renderer};
 use glow::*;
 use glutin::{ContextWrapper, PossiblyCurrent};
@@ -97,6 +98,16 @@ impl BackendRenderer for GlowRenderer {
             self.gl.bind_vertex_array(Some(self.vertex_array));
 
             self.gl.draw_arrays(glow::TRIANGLES, 0, 3);
+        }
+    }
+
+    fn set_render_pass(&mut self, commands: &Queue<core_renderer::RenderCommand>) {
+        for command in commands.items() {
+            match command {
+                core_renderer::RenderCommand::UpdateCamera => {
+                    println!("update camera");
+                }
+            }
         }
     }
 }

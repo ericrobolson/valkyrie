@@ -1,55 +1,74 @@
-use core_ecs::*;
-
 // Top level renderer.
 // Does things at the scene level, to allow individual backends to handle what's going on.
 
-pub struct Renderer {
-    backend: Box<dyn BackendRenderer>,
+use core_data_structures::queue::Queue;
+
+const RENDER_COMMAND_CAPACITY: usize = 256;
+
+pub enum RenderCommand {
+    UpdateCamera,
 }
 
-pub struct LightId;
+/// Top level renderer. Functionality based.
+pub struct Renderer {
+    /// The actual platform specific rendering backend.
+    backend: Box<dyn BackendRenderer>,
+    dirty: bool,
+    render_pass: RenderPass,
+}
+
+pub struct RenderPass {
+    commands: Queue<RenderCommand>,
+}
+
+impl RenderPass {
+    /// Adds a new command to the render pass
+    pub fn add(&mut self, command: RenderCommand) -> &mut Self {
+        self.commands.push(command);
+        self
+    }
+}
 
 impl Renderer {
     fn new(backend: Box<dyn BackendRenderer>) -> Self {
-        Self { backend }
+        Self {
+            dirty: true,
+            backend,
+            render_pass: RenderPass {
+                commands: Queue::new(RENDER_COMMAND_CAPACITY),
+            },
+        }
     }
 
+    /// The render pass to execute. Operates in a functional approach.
+    pub fn create_render_pass(&mut self) -> &mut RenderPass {
+        self.render_pass.commands.clear();
+        self.dirty = true;
+
+        &mut self.render_pass
+    }
+
+    /// Dispatches the render pass.
     pub fn dispatch(&mut self) {
+        if self.dirty {
+            self.dirty = false;
+            self.backend.set_render_pass(&self.render_pass.commands);
+        }
+
         self.backend.dispatch();
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq)]
-pub struct ImageFile {
-    name: String,
-    bytes: Vec<u8>,
-}
-
-impl Component for ImageFile {}
-
-#[derive(Debug, Default, Clone, PartialEq)]
-pub struct Buffered;
-
-impl Component for Buffered {}
-
-#[derive(Debug, Clone, PartialEq)]
-enum GpuResource {
-    NotLoaded,
-    Loaded,
-}
-impl Default for GpuResource {
-    fn default() -> Self {
-        Self::NotLoaded
-    }
-}
-
-impl Component for GpuResource {}
-
+/// The platform specific backend renderer. Such as OpenGL, Vulkan, WGPU, etc.
 pub trait BackendRenderer {
     /// Dispatches all queued commands and draws to the screen
     fn dispatch(&mut self);
+
+    /// Updates the render commands to execute. Takes a functional approach, where this is the new frame.
+    fn set_render_pass(&mut self, commands: &Queue<RenderCommand>);
 }
 
+/// Creates a new renderer
 pub fn make_renderer(backend: Box<dyn BackendRenderer>) -> Renderer {
     Renderer::new(backend)
 }

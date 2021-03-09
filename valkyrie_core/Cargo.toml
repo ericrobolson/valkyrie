@@ -17,6 +17,7 @@ core_renderer = {path="crates/core_renderer"}
 core_simulation = {path="crates/core_simulation"}
 core_window = {path="crates/core_window"}
 core_voxels = {path="crates/core_voxels"}
+core_math = {path="crates/core_math"}
 
 # Platform specific dependencies
 platform_file_io = {path="crates/_platform_specific/platform_file_io"}
