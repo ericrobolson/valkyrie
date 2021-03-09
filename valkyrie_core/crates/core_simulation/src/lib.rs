@@ -1,11 +1,12 @@
 use std::marker::PhantomData;
 
-use crate::{
-    data_structures::queue::Queue,
-    timing::{hz_to_duration, Stopwatch},
-};
+use core_data_structures::queue::Queue;
+use core_timing::{hz_to_duration, Stopwatch};
 
-pub use crate::timing::Duration;
+pub use core_timing::Duration;
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum ValkErr {}
 
 /// Messages a simulation may pass back to the engine
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -14,13 +15,18 @@ pub enum ControlMessage {
     ExitSim,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum Input<UserMsg> {
+    UserMsg(UserMsg),
+}
+
 /// Common functionality a simulation must implement.
 pub trait Simulation<Cfg, Msg> {
     /// Creates a new simulation.
     fn new(config: Cfg) -> Self;
 
     /// A single 'tick' for an application.
-    fn tick(&mut self, delta_t: Duration, messages: &[Msg]) -> ControlMessage;
+    fn tick(&mut self, delta_t: Duration, messages: &[Input<Msg>]) -> ControlMessage;
 }
 
 /// Executor for simulation. Handles timestepping.
@@ -31,7 +37,7 @@ where
     use_fixed_timestep: bool,
     time_keeper: Timekeeper,
     sim: Sim,
-    engine_queue: Queue<Msg>,
+    engine_queue: Queue<Input<Msg>>,
     cfg_phantom: PhantomData<Cfg>,
     frame: u64,
 }
@@ -80,7 +86,7 @@ where
     }
 
     /// Passes in the input message and attempts to execute.
-    pub fn tick(&mut self, input: Option<Msg>) -> ControlMessage {
+    pub fn tick(&mut self, input: Option<Input<Msg>>) -> ControlMessage {
         let mut control_msg = ControlMessage::Ok;
 
         // Queue up any messages
@@ -102,7 +108,7 @@ where
 
             // Tick the simulation until it has caught up
             while self.time_keeper.accumulated_time > self.time_keeper.tick_duration {
-                self.frame.wrapping_add(1);
+                self.frame = self.frame.wrapping_add(1);
                 self.time_keeper.accumulated_time -= self.time_keeper.tick_duration;
                 times_ticked += 1;
 
@@ -121,7 +127,7 @@ where
         }
         // Otherwise execute it
         else {
-            self.frame.wrapping_add(1);
+            self.frame = self.frame.wrapping_add(1);
             let delta_t = self.time_keeper.simulation_stopwatch.elapsed();
             control_msg = self.sim.tick(delta_t, &self.engine_queue.items());
             self.engine_queue.clear();
