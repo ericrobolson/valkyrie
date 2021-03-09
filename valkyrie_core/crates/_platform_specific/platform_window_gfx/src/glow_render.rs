@@ -13,50 +13,74 @@ const VERT_SHADER: &'static str = r#"
             "#;
 
 const FRAG_SHADER: &'static str = r#"
-            out vec4 FragColor;
+            uniform vec2 u_screen_size;
 
+            out vec4 frag_color;
+            
             void main()
             {
-                FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+                // Normalize frag coords
+                vec2 frag_coord = gl_FragCoord.xy / u_screen_size; // subtract 1 mult 2 to normalize to -1..1
+
+                frag_color = vec4(frag_coord, 0.0, 1.0f);
             } "#;
 
 pub fn make(
     windowed_context: &ContextWrapper<PossiblyCurrent, glutin::window::Window>,
 ) -> impl BackendRenderer {
+    // Verts are x,y,z
+    let fullscreen_verts: Vec<f32> = vec![
+        // first triangle
+        0.5, 0.5, 0.0, // top right
+        0.5, -0.5, 0.0, // bottom right
+        -0.5, 0.5, 0.0, // top let
+        // second triangle
+        0.5, -0.5, 0.0, // bottom right
+        -0.5, -0.5, 0.0, // bottom let
+        -0.5, 0.5, 0.0, // top let
+    ];
+    let fullscreen_verts: Vec<f32> = fullscreen_verts.iter().map(|v| v * 2.0).collect();
+
+    let num_fullscreen_vert_attr = 3; // x,y,z
+    let num_fullscreen_verts = fullscreen_verts.len() / num_fullscreen_vert_attr;
+
     // TODO: make safe
-    let (gl, vertex_array, vbo, program) = unsafe {
+    let (gl, fullscreen_vertex_array, fullscreen_vbo, screen_size_ubo, program) = unsafe {
+        // Create context
         let gl = glow::Context::from_loader_function(|s| {
             windowed_context.get_proc_address(s) as *const _
         });
 
+        gl.enable(glow::FRAMEBUFFER_SRGB);
+
         let shader_version = "#version 330";
 
-        let verts: Vec<f32> = vec![-0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.0, 0.5, 0.0];
-
-        let vertex_array = gl
+        // Create fullscreen triangles
+        let fullscreen_vertex_array = gl
             .create_vertex_array()
             .expect("Cannot create vertex array");
-        gl.bind_vertex_array(Some(vertex_array));
+        gl.bind_vertex_array(Some(fullscreen_vertex_array));
 
-        let vbo = gl.create_buffer().unwrap();
-        gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
+        let fullscreen_vbo = gl.create_buffer().unwrap();
+        gl.bind_buffer(glow::ARRAY_BUFFER, Some(fullscreen_vbo));
         gl.buffer_data_u8_slice(
             glow::ARRAY_BUFFER,
-            core_conversions::slice_f32_to_u8(&verts),
+            core_conversions::slice_f32_to_u8(&fullscreen_verts),
             glow::STATIC_DRAW,
         );
 
         gl.vertex_attrib_pointer_f32(
             0,
-            3,
+            num_fullscreen_vert_attr as i32,
             glow::FLOAT,
             false,
-            3 * std::mem::size_of::<f32>() as i32,
+            (num_fullscreen_vert_attr * std::mem::size_of::<f32>()) as i32,
             0,
         );
 
         gl.enable_vertex_attrib_array(0);
 
+        // Create program + link shaders
         let program = gl.create_program().expect("Cannot create program");
 
         let (vertex_shader_source, fragment_shader_source) = (VERT_SHADER, FRAG_SHADER);
@@ -86,30 +110,55 @@ pub fn make(
             panic!(gl.get_program_info_log(program));
         }
 
+        //cleanup
         for shader in shaders {
             gl.detach_shader(program, shader);
             gl.delete_shader(shader);
         }
 
-        gl.use_program(Some(program));
-        gl.clear_color(0.1, 0.2, 0.3, 1.0);
+        gl.use_program(Some(program)); // Need to call before setting uniforms
 
-        (gl, vertex_array, vbo, program)
+        // Create screensize ubo
+        let screen_size_ubo = gl.create_buffer().unwrap();
+        let uniform = gl.get_uniform_location(program, "u_screen_size");
+        match uniform {
+            Some(u) => {
+                println!("set");
+
+                gl.uniform_2_f32(Some(&u), 1920.0, 1080.0);
+            }
+            None => {
+                println!("NONE");
+            }
+        }
+
+        // Return
+        (
+            gl,
+            fullscreen_vertex_array,
+            fullscreen_vbo,
+            screen_size_ubo,
+            program,
+        )
     };
 
     GlowRenderer {
         gl,
         program,
-        vertex_array,
-        vbo,
+        fullscreen_vertex_array,
+        fullscreen_vbo,
+        num_fullscreen_verts,
+        screen_size_ubo,
     }
 }
 
 struct GlowRenderer {
     gl: Context,
     program: u32,
-    vertex_array: u32,
-    vbo: u32,
+    fullscreen_vertex_array: u32,
+    fullscreen_vbo: u32,
+    screen_size_ubo: u32,
+    num_fullscreen_verts: usize,
 }
 impl BackendRenderer for GlowRenderer {
     fn dispatch(&mut self) {
@@ -118,10 +167,13 @@ impl BackendRenderer for GlowRenderer {
             self.gl.clear_color(0.1, 0.2, 0.3, 1.0);
             self.gl.clear(glow::COLOR_BUFFER_BIT);
 
-            self.gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.vbo));
-            self.gl.bind_vertex_array(Some(self.vertex_array));
+            self.gl
+                .bind_buffer(glow::ARRAY_BUFFER, Some(self.fullscreen_vbo));
+            self.gl
+                .bind_vertex_array(Some(self.fullscreen_vertex_array));
 
-            self.gl.draw_arrays(glow::TRIANGLES, 0, 6);
+            self.gl
+                .draw_arrays(glow::TRIANGLES, 0, self.num_fullscreen_verts as i32);
         }
     }
 
@@ -140,8 +192,8 @@ impl Drop for GlowRenderer {
     fn drop(&mut self) {
         unsafe {
             self.gl.delete_program(self.program);
-            self.gl.delete_vertex_array(self.vertex_array);
-            self.gl.delete_buffer(self.vbo);
+            self.gl.delete_vertex_array(self.fullscreen_vertex_array);
+            self.gl.delete_buffer(self.fullscreen_vbo);
         }
     }
 }

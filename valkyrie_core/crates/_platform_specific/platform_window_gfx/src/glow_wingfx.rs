@@ -99,7 +99,7 @@ where
             if executor.last_updated_frame() != last_frame {
                 last_frame = executor.last_updated_frame();
                 executor.sim().render(&mut renderer);
-
+                windowed_context.window().request_redraw();
                 // Is the following necessary?
                 // TODO: divorce rendering from execution?
             }
