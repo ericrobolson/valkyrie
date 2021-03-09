@@ -36,7 +36,8 @@ impl Renderable for Re4magined {
 }
 
 fn main() {
-    run_client::<Re4magined, Cfg, Msg>("Title", 640, 320, Cfg::new()).unwrap();
+    run_client::<Re4magined, Cfg, Msg>("Title", 1024, 768, Cfg::new(), BackendType::Opengl)
+        .unwrap();
     return;
     run_server::<Re4magined, Cfg, Msg>(SimulationOptions {
         use_fixed_timestep: true,

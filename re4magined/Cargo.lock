@@ -282,6 +282,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "core_conversions"
+version = "0.1.0"
+
+[[package]]
 name = "core_data_structures"
 version = "0.1.0"
 
@@ -545,7 +549,7 @@ dependencies = [
  "bitflags",
  "gfx-auxil",
  "gfx-hal",
- "glow",
+ "glow 0.7.2",
  "js-sys",
  "khronos-egl",
  "libloading 0.6.7",
@@ -632,6 +636,18 @@ name = "glow"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "072136d2c3783f3a92f131acb227bc806d3886278e2a4dc1e9990ec89ef9e70b"
+dependencies = [
+ "js-sys",
+ "slotmap",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "glow"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "363e249e509764031df32a7866e0771656c9fa8d69a349903489b843340cd45e"
 dependencies = [
  "js-sys",
  "slotmap",
@@ -1239,10 +1255,11 @@ version = "0.1.0"
 name = "platform_window_gfx"
 version = "0.1.0"
 dependencies = [
+ "core_conversions",
  "core_renderer",
  "core_simulation",
  "core_window",
- "glow",
+ "glow 0.8.1",
  "glutin",
  "wgpu",
  "winit",

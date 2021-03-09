@@ -14,15 +14,9 @@ impl Renderer {
         Self { backend }
     }
 
-    pub fn add_light(&mut self) -> LightId {
-        todo!()
+    pub fn dispatch(&mut self) {
+        self.backend.dispatch();
     }
-
-    pub fn delete_light(&mut self, light: LightId) {
-        todo!()
-    }
-
-    pub fn dispatch(&mut self) {}
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -51,7 +45,10 @@ impl Default for GpuResource {
 
 impl Component for GpuResource {}
 
-pub trait BackendRenderer {}
+pub trait BackendRenderer {
+    /// Dispatches all queued commands and draws to the screen
+    fn dispatch(&mut self);
+}
 
 pub fn make_renderer(backend: Box<dyn BackendRenderer>) -> Renderer {
     Renderer::new(backend)

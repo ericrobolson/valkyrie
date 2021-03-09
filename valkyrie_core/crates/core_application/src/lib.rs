@@ -6,6 +6,7 @@ const MAX_ENGINE_MSGS: usize = 256;
 
 pub use core_simulation::{ControlMessage, Input, Simulation, ValkErr};
 pub use core_window::Renderable;
+pub use window_builder::BackendType;
 
 pub struct SimulationOptions<Cfg> {
     /// Whether a fixed timestep should be used
@@ -45,6 +46,7 @@ pub fn run_client<Sim, Cfg, Msg>(
     min_width: u32,
     min_height: u32,
     options: SimulationOptions<Cfg>,
+    backend: BackendType,
 ) -> Result<(), ValkErr>
 where
     Sim: Simulation<Cfg, Msg> + Renderable + 'static,
@@ -65,7 +67,7 @@ where
             h: min_height,
         },
     }
-    .build()
+    .build(backend)
     .unwrap();
 
     window.execute(executor);

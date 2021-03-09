@@ -5,7 +5,7 @@ pub enum BackendType {
     /// Utilizes OpenGL as the backend
     Opengl,
     /// Uses WGPU Vulkan as the backend
-    WgpuVulkan,
+    Wgpu,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -23,18 +23,26 @@ pub struct WinGfxBuilder {
 }
 
 impl WinGfxBuilder {
-    pub fn build<Sim, Cfg, Msg>(&self) -> Result<Box<dyn Window<Sim, Cfg, Msg>>, WinGfxBuildErr>
+    pub fn build<Sim, Cfg, Msg>(
+        &self,
+        backend: BackendType,
+    ) -> Result<Box<dyn Window<Sim, Cfg, Msg>>, WinGfxBuildErr>
     where
         Sim: Simulation<Cfg, Msg> + Renderable + 'static,
         Cfg: 'static,
         Msg: 'static,
     {
-        Ok(Box::new(
-            platform_window_gfx::wingfx_glutin::GlutinWindow::new(
+        match backend {
+            BackendType::Opengl => Ok(Box::new(platform_window_gfx::OpenGlWindow::new(
                 self.title,
                 self.size.w,
                 self.size.h,
-            ),
-        ))
+            ))),
+            BackendType::Wgpu => Ok(Box::new(platform_window_gfx::WgpuWindow::new(
+                self.title,
+                self.size.w,
+                self.size.h,
+            ))),
+        }
     }
 }

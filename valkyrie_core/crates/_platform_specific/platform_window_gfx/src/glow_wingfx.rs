@@ -7,13 +7,15 @@ use core_renderer::{BackendRenderer, Renderer};
 use core_simulation::{ControlMessage, Input, Simulation, SimulationExecutor, WindowMsg};
 use core_window::{Renderable, Window};
 
-pub struct GlutinWindow {
+use crate::glow_render::make;
+
+pub struct OpenGlWindow {
     title: &'static str,
     w: u32,
     h: u32,
 }
 
-impl GlutinWindow {
+impl OpenGlWindow {
     pub fn new(title: &'static str, w: u32, h: u32) -> Self {
         Self { title, w, h }
     }
@@ -21,21 +23,25 @@ impl GlutinWindow {
     fn handle_event<T>(event: Event<T>, control_flow: &mut ControlFlow) -> Option<WindowMsg> {
         match event {
             Event::LoopDestroyed => None,
+            Event::MainEventsCleared => Some(WindowMsg::RedrawRequested),
             Event::WindowEvent { event, .. } => match event {
-                WindowEvent::Resized(physical_size) => None,
+                WindowEvent::Resized(physical_size) => Some(WindowMsg::Resize {
+                    w: physical_size.width,
+                    h: physical_size.height,
+                }),
                 WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
-                    None
+                    Some(WindowMsg::Shutdown)
                 }
                 _ => None,
             },
-            Event::RedrawRequested(_) => None,
+            Event::RedrawRequested(_) => Some(WindowMsg::RedrawRequested),
             _ => None,
         }
     }
 }
 
-impl<Sim, Cfg, Msg> Window<Sim, Cfg, Msg> for GlutinWindow
+impl<Sim, Cfg, Msg> Window<Sim, Cfg, Msg> for OpenGlWindow
 where
     Sim: Simulation<Cfg, Msg> + Renderable + 'static,
     Cfg: 'static,
@@ -47,19 +53,15 @@ where
         let wb = glutin::window::WindowBuilder::new()
             .with_title(self.title)
             .with_inner_size(glutin::dpi::LogicalSize::new(self.w as f32, self.h as f32));
+
         let windowed_context = glutin::ContextBuilder::new()
             .with_vsync(true)
             .build_windowed(wb, &el)
             .unwrap();
+
         let windowed_context = unsafe { windowed_context.make_current().unwrap() };
 
-        let context = unsafe {
-            glow::Context::from_loader_function(|s| {
-                windowed_context.get_proc_address(s) as *const _
-            })
-        };
-
-        let mut renderer = core_renderer::make_renderer(Box::new(make_glow_renderer()));
+        let mut renderer = core_renderer::make_renderer(Box::new(make(&windowed_context)));
         let mut last_frame = u64::MAX;
 
         el.run(move |event, _, control_flow| {
@@ -71,6 +73,7 @@ where
                 Some(ev) => {
                     match ev {
                         WindowMsg::RedrawRequested => {
+                            renderer.dispatch();
                             windowed_context.swap_buffers().unwrap();
                         }
                         WindowMsg::Shutdown => *control_flow = ControlFlow::Exit,
@@ -97,15 +100,9 @@ where
                 last_frame = executor.last_updated_frame();
                 executor.sim().render(&mut renderer);
 
-                windowed_context.window().request_redraw();
+                // Is the following necessary?
+                // TODO: divorce rendering from execution?
             }
         });
     }
 }
-
-fn make_glow_renderer() -> impl BackendRenderer {
-    GlowRenderer {}
-}
-
-struct GlowRenderer {}
-impl BackendRenderer for GlowRenderer {}
