@@ -34,7 +34,7 @@ impl Renderable for Re4magined {
         renderer
             .create_render_pass()
             .add(RenderCommand::UpdateCamera(Camera {
-                eye: Vec3::default(),
+                eye: Vec3::new(0., 0., 5.),
                 target: Vec3::default(),
                 up: None,
             }));

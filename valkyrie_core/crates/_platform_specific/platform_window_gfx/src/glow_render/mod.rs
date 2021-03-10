@@ -146,6 +146,8 @@ where
 }
 
 fn set_camera(program: u32, gl: &Context, camera: &core_renderer::Camera) {
+    // TODO: cacheing for camera changes? E.g. if it's not different, don't change state
+
     unsafe {
         gl.use_program(Some(program)); // Need to call before setting uniforms
 
