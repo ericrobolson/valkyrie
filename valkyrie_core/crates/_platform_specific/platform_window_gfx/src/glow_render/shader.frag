@@ -9,6 +9,7 @@ uniform vec3 u_view_eye;
 uniform vec3 u_view_target;
 uniform vec3 u_view_up;
 uniform mat4 u_view_matrix;
+uniform float u_view_fov_degrees;
 
 out vec4 frag_color;
 
@@ -71,7 +72,7 @@ vec2 frag_coord() {
 
 void main()
 {    
-    vec3 ray_dir = ray_direction(45.0, frag_coord());
+    vec3 ray_dir = ray_direction(u_view_fov_degrees, frag_coord());
 
     vec3 world_dir = (u_view_matrix * vec4(ray_dir, 0.)).xyz;
 

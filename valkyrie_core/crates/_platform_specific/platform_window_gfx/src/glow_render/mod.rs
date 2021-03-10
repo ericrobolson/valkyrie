@@ -10,6 +10,7 @@ const UNIFORM_VIEW_EYE: &'static str = "u_view_eye";
 const UNIFORM_VIEW_TARGET: &'static str = "u_view_target";
 const UNIFORM_VIEW_UP: &'static str = "u_view_up";
 const UNIFORM_VIEW_MATRIX: &'static str = "u_view_matrix";
+const UNIFORM_VIEW_FOV_DEGREES: &'static str = "u_view_fov_degrees";
 
 pub fn make(
     w: u32,
@@ -31,6 +32,8 @@ pub fn make(
 
     let num_fullscreen_vert_attr = 3; // x,y,z
     let num_fullscreen_verts = fullscreen_verts.len() / num_fullscreen_vert_attr;
+
+    let mut view_state = ViewState::default();
 
     // TODO: make safe
     let (gl, fullscreen_vertex_array, fullscreen_vbo, program) = unsafe {
@@ -109,7 +112,12 @@ pub fn make(
 
         // Update UBOs
         resize_screen(program, &gl, w, h);
-        set_camera(program, &gl, &core_renderer::Camera::default());
+        set_camera(
+            program,
+            &gl,
+            &mut view_state,
+            &core_renderer::Camera::default(),
+        );
 
         // Return
         (gl, fullscreen_vertex_array, fullscreen_vbo, program)
@@ -121,6 +129,7 @@ pub fn make(
         fullscreen_vertex_array,
         fullscreen_vbo,
         num_fullscreen_verts,
+        view_state,
     }
 }
 
@@ -145,34 +154,76 @@ where
     }
 }
 
-fn set_camera(program: u32, gl: &Context, camera: &core_renderer::Camera) {
+/// Container for view uniforms
+#[derive(Default)]
+struct ViewState {
+    fov: f32,
+    eye: Vec3,
+    target: Vec3,
+    up: Vec3,
+}
+
+fn set_camera(
+    program: u32,
+    gl: &Context,
+    view_state: &mut ViewState,
+    camera: &core_renderer::Camera,
+) {
     // TODO: cacheing for camera changes? E.g. if it's not different, don't change state
 
     unsafe {
         gl.use_program(Some(program)); // Need to call before setting uniforms
 
+        let mut dirty_view_matrix = false;
+
+        let fov = 45.0;
+        if fov != view_state.fov {
+            // Update fov
+            uniform(gl, program, UNIFORM_VIEW_FOV_DEGREES, |u| {
+                gl.uniform_1_f32(Some(&u), fov);
+            });
+        }
+
         // Update eye
-        let (x, y, z) = camera.eye.into();
-        uniform(gl, program, UNIFORM_VIEW_EYE, |u| {
-            gl.uniform_3_f32(Some(&u), x, y, z)
-        });
+        if camera.eye != view_state.eye {
+            dirty_view_matrix = true;
+            view_state.eye = camera.eye;
+
+            let (x, y, z) = camera.eye.into();
+            uniform(gl, program, UNIFORM_VIEW_EYE, |u| {
+                gl.uniform_3_f32(Some(&u), x, y, z)
+            });
+        }
 
         // Update target
-        let (x, y, z) = camera.target.into();
-        uniform(gl, program, UNIFORM_VIEW_TARGET, |u| {
-            gl.uniform_3_f32(Some(&u), x, y, z)
-        });
+        if camera.target != view_state.target {
+            dirty_view_matrix = true;
+            view_state.target = camera.target;
+
+            let (x, y, z) = camera.target.into();
+            uniform(gl, program, UNIFORM_VIEW_TARGET, |u| {
+                gl.uniform_3_f32(Some(&u), x, y, z)
+            });
+        }
 
         // Update up
-        let (x, y, z) = camera.up.unwrap_or(Vec3::unit_y()).into();
-        uniform(gl, program, UNIFORM_VIEW_UP, |u| {
-            gl.uniform_3_f32(Some(&u), x, y, z)
-        });
+        let camera_up = camera.up.unwrap_or(Vec3::unit_y());
+        if camera_up != view_state.up {
+            dirty_view_matrix = true;
+            view_state.up = camera_up;
+
+            let (x, y, z) = camera_up.into();
+            uniform(gl, program, UNIFORM_VIEW_UP, |u| {
+                gl.uniform_3_f32(Some(&u), x, y, z)
+            });
+        }
 
         // Update view matrix
-        uniform(gl, program, UNIFORM_VIEW_MATRIX, |u| {
-            gl.uniform_matrix_4_f32_slice(Some(&u), false, camera.to_mat4().as_slice())
-        });
+        if dirty_view_matrix {
+            uniform(gl, program, UNIFORM_VIEW_MATRIX, |u| {
+                gl.uniform_matrix_4_f32_slice(Some(&u), false, camera.to_mat4().as_slice())
+            });
+        }
     }
 }
 
@@ -196,6 +247,7 @@ struct GlowRenderer {
     fullscreen_vertex_array: u32,
     fullscreen_vbo: u32,
     num_fullscreen_verts: usize,
+    view_state: ViewState,
 }
 impl BackendRenderer for GlowRenderer {
     fn dispatch(&mut self) {
@@ -218,7 +270,7 @@ impl BackendRenderer for GlowRenderer {
         for command in commands.items() {
             match command {
                 core_renderer::RenderCommand::UpdateCamera(camera) => {
-                    set_camera(self.program, &self.gl, camera);
+                    set_camera(self.program, &self.gl, &mut self.view_state, camera);
                 }
             }
         }
