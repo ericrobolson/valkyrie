@@ -73,7 +73,6 @@ vec2 frag_coord() {
 void main()
 {    
     vec3 ray_dir = ray_direction(u_view_fov_degrees, frag_coord());
-
     vec3 world_dir = (u_view_matrix * vec4(ray_dir, 0.)).xyz;
 
     float dist = march(u_view_eye, world_dir);

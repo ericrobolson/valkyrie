@@ -2,9 +2,9 @@ type Num = f32;
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 pub struct Vec3 {
-    x: Num,
-    y: Num,
-    z: Num,
+    pub x: Num,
+    pub y: Num,
+    pub z: Num,
 }
 
 impl Vec3 {
@@ -50,5 +50,25 @@ impl Into<cgmath::Point3<f32>> for Vec3 {
 impl Into<cgmath::Vector3<f32>> for Vec3 {
     fn into(self) -> cgmath::Vector3<f32> {
         cgmath::Vector3::new(self.x, self.y, self.z)
+    }
+}
+
+impl std::ops::Add for Vec3 {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
+        }
+    }
+}
+
+impl std::ops::AddAssign for Vec3 {
+    fn add_assign(&mut self, rhs: Self) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
     }
 }

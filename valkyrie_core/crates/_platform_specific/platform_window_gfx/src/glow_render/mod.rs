@@ -133,6 +133,56 @@ pub fn make(
     }
 }
 
+struct GlowRenderer {
+    gl: Context,
+    program: u32,
+    fullscreen_vertex_array: u32,
+    fullscreen_vbo: u32,
+    num_fullscreen_verts: usize,
+    view_state: ViewState,
+}
+impl BackendRenderer for GlowRenderer {
+    fn dispatch(&mut self) {
+        unsafe {
+            self.gl.use_program(Some(self.program));
+            self.gl.clear_color(0.1, 0.2, 0.3, 1.0);
+            self.gl.clear(glow::COLOR_BUFFER_BIT);
+
+            self.gl
+                .bind_buffer(glow::ARRAY_BUFFER, Some(self.fullscreen_vbo));
+            self.gl
+                .bind_vertex_array(Some(self.fullscreen_vertex_array));
+
+            self.gl
+                .draw_arrays(glow::TRIANGLES, 0, self.num_fullscreen_verts as i32);
+        }
+    }
+
+    fn set_render_pass(&mut self, commands: &Queue<core_renderer::RenderCommand>) {
+        for command in commands.items() {
+            match command {
+                core_renderer::RenderCommand::UpdateCamera(camera) => {
+                    set_camera(self.program, &self.gl, &mut self.view_state, camera);
+                }
+            }
+        }
+    }
+
+    fn resize(&mut self, w: u32, h: u32) {
+        resize_screen(self.program, &self.gl, w, h);
+    }
+}
+
+impl Drop for GlowRenderer {
+    fn drop(&mut self) {
+        unsafe {
+            self.gl.delete_program(self.program);
+            self.gl.delete_vertex_array(self.fullscreen_vertex_array);
+            self.gl.delete_buffer(self.fullscreen_vbo);
+        }
+    }
+}
+
 /// Updates the given uniform
 fn uniform<F>(gl: &Context, program: u32, name: &'static str, op: F)
 where
@@ -169,8 +219,6 @@ fn set_camera(
     view_state: &mut ViewState,
     camera: &core_renderer::Camera,
 ) {
-    // TODO: cacheing for camera changes? E.g. if it's not different, don't change state
-
     unsafe {
         gl.use_program(Some(program)); // Need to call before setting uniforms
 
@@ -238,55 +286,5 @@ fn resize_screen(program: u32, gl: &Context, w: u32, h: u32) {
 
         // Resize viewport
         gl.viewport(0, 0, w as i32, h as i32);
-    }
-}
-
-struct GlowRenderer {
-    gl: Context,
-    program: u32,
-    fullscreen_vertex_array: u32,
-    fullscreen_vbo: u32,
-    num_fullscreen_verts: usize,
-    view_state: ViewState,
-}
-impl BackendRenderer for GlowRenderer {
-    fn dispatch(&mut self) {
-        unsafe {
-            self.gl.use_program(Some(self.program));
-            self.gl.clear_color(0.1, 0.2, 0.3, 1.0);
-            self.gl.clear(glow::COLOR_BUFFER_BIT);
-
-            self.gl
-                .bind_buffer(glow::ARRAY_BUFFER, Some(self.fullscreen_vbo));
-            self.gl
-                .bind_vertex_array(Some(self.fullscreen_vertex_array));
-
-            self.gl
-                .draw_arrays(glow::TRIANGLES, 0, self.num_fullscreen_verts as i32);
-        }
-    }
-
-    fn set_render_pass(&mut self, commands: &Queue<core_renderer::RenderCommand>) {
-        for command in commands.items() {
-            match command {
-                core_renderer::RenderCommand::UpdateCamera(camera) => {
-                    set_camera(self.program, &self.gl, &mut self.view_state, camera);
-                }
-            }
-        }
-    }
-
-    fn resize(&mut self, w: u32, h: u32) {
-        resize_screen(self.program, &self.gl, w, h);
-    }
-}
-
-impl Drop for GlowRenderer {
-    fn drop(&mut self) {
-        unsafe {
-            self.gl.delete_program(self.program);
-            self.gl.delete_vertex_array(self.fullscreen_vertex_array);
-            self.gl.delete_buffer(self.fullscreen_vbo);
-        }
     }
 }

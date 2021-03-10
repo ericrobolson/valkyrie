@@ -76,6 +76,8 @@ where
                             //windowed_context.resize(glutin::dpi::PhysicalSize::new(*w, *h));
                             //windowed_context.window().request_redraw();
                         }
+                        WindowMsg::KeyPress(_) => {}
+                        WindowMsg::KeyRelease(_) => {}
                     }
 
                     Some(Input::WindowMsg(*ev))

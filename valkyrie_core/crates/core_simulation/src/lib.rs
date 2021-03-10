@@ -26,6 +26,16 @@ pub enum WindowMsg {
     Shutdown,
     RedrawRequested,
     Resize { w: u32, h: u32 },
+    KeyPress(KeyboardMsg),
+    KeyRelease(KeyboardMsg),
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum KeyboardMsg {
+    W,
+    A,
+    S,
+    D,
 }
 
 /// Common functionality a simulation must implement.

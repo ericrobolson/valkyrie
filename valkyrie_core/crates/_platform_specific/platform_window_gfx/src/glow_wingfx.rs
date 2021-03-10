@@ -33,6 +33,40 @@ impl OpenGlWindow {
                     *control_flow = ControlFlow::Exit;
                     Some(WindowMsg::Shutdown)
                 }
+                WindowEvent::KeyboardInput { input, .. } => {
+                    let pressed = match input.state {
+                        glutin::event::ElementState::Pressed => true,
+                        glutin::event::ElementState::Released => false,
+                    };
+
+                    let mut key_msg = core_simulation::KeyboardMsg::W;
+
+                    if let Some(keycode) = input.virtual_keycode {
+                        match keycode {
+                            glutin::event::VirtualKeyCode::W => {
+                                key_msg = core_simulation::KeyboardMsg::W;
+                            }
+                            glutin::event::VirtualKeyCode::A => {
+                                key_msg = core_simulation::KeyboardMsg::A;
+                            }
+                            glutin::event::VirtualKeyCode::S => {
+                                key_msg = core_simulation::KeyboardMsg::S;
+                            }
+                            glutin::event::VirtualKeyCode::D => {
+                                key_msg = core_simulation::KeyboardMsg::D;
+                            }
+                            _ => {}
+                        }
+
+                        if pressed {
+                            return Some(WindowMsg::KeyPress(key_msg));
+                        } else {
+                            return Some(WindowMsg::KeyRelease(key_msg));
+                        }
+                    }
+
+                    None
+                }
                 _ => None,
             },
             Event::RedrawRequested(_) => Some(WindowMsg::RedrawRequested),
@@ -85,6 +119,8 @@ where
                             renderer.resize(w, h);
                             windowed_context.window().request_redraw();
                         }
+                        WindowMsg::KeyPress(_) => {}
+                        WindowMsg::KeyRelease(_) => {}
                     }
 
                     Some(Input::WindowMsg(*ev))
