@@ -1,10 +1,19 @@
 
 #define CGLTF_IMPLEMENTATION
 #include "include/cgltf.h"
+#include <stdio.h>
 
 //Using SDL and standard IO
+
+int main()
+{
+	printf("HELLO");
+	return 0;
+}
+
+/*
+
 #include <SDL.h>
-#include <stdio.h>
 
 //Screen dimension constants
 const int SCREEN_WIDTH = 640;
@@ -55,3 +64,4 @@ int main(int argc, char *args[])
 
 	return 0;
 }
+*/

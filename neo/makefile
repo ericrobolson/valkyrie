@@ -16,13 +16,15 @@ ifeq ($(USE_WIN), 1)
 	CC=x86_64-w64-mingw32-g++
 	BUILD_DIR := ./build_win
 	TARGET_EXEC := bb_exe.exe # added .exe for windows
+
+	# Copy extern dlls
+	SDL_DLL_FILE = ./extern/SDL2-devel-2.0.14-mingw/SDL2.dll
+	COPY_SDL_DLL = cp -f $(SDL_DLL_FILE) $(BUILD_DIR)
 endif
 
 # Find all the C and C++ files we want to compile
 SRCS := $(shell find $(SRC_DIRS) -name *.c)
 #SRCS := $(shell find $(SRC_DIRS) -name *.cpp -or -name *.c)
-
-
 
 # String substitution for every C/C++ file.
 # As an example, hello.cpp turns into ./build/hello.cpp.o
@@ -41,8 +43,6 @@ INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 # These files will have .d instead of .o as the output.
 CPPFLAGS := $(INC_FLAGS) -MMD -MP
 
-
-
 # The final build step.
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 	$(CC) $(OBJS) -o $@ $(LDFLAGS)
@@ -51,11 +51,13 @@ $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 $(BUILD_DIR)/%.c.o: %.c
 	mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	$(COPY_SDL_DLL)
 
 # Build step for C++ source
 #$(BUILD_DIR)/%.cpp.o: %.cpp
 #	mkdir -p $(dir $@)
 #	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
 
 # Clean up things
 .PHONY: clean
