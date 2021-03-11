@@ -65,11 +65,11 @@ impl Simulation<Cfg, Msg> for Re4magined {
             let speed = 0.1;
 
             if self.up_held {
-                v.y += speed;
+                v.z += speed;
             }
 
             if self.down_held {
-                v.y -= speed;
+                v.z -= speed;
             }
 
             if self.right_held {

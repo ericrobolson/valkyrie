@@ -15,7 +15,7 @@ pub struct Camera {
 
 impl Camera {
     pub fn to_mat4(&self) -> Mat4 {
-        Mat4::view_matrix(self.eye, self.target, self.up.unwrap_or(Vec3::unit_y()))
+        Mat4::view_matrix(self.eye, self.target, self.up.unwrap_or(Vec3::unit_z()))
     }
 }
 
