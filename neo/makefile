@@ -4,7 +4,7 @@ WIN64_COMPILER=x86_64-w64-mingw32-g++
 
 # Compiler specification
 #CC=g++ # WSL compiler
-CC=LINUX_COMPILER # Windows compiler
+CC=g++ # Windows compiler
 
 
 # Thanks to Job Vranish (https://spin.atomicobject.com/2016/08/26/makefile-c-projects/)
@@ -19,7 +19,10 @@ ifeq ($(USE_WIN), 1)
 endif
 
 # Find all the C and C++ files we want to compile
-SRCS := $(shell find $(SRC_DIRS) -name *.cpp -or -name *.c)
+SRCS := $(shell find $(SRC_DIRS) -name *.c)
+#SRCS := $(shell find $(SRC_DIRS) -name *.cpp -or -name *.c)
+
+
 
 # String substitution for every C/C++ file.
 # As an example, hello.cpp turns into ./build/hello.cpp.o
@@ -38,6 +41,8 @@ INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 # These files will have .d instead of .o as the output.
 CPPFLAGS := $(INC_FLAGS) -MMD -MP
 
+
+
 # The final build step.
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 	$(CC) $(OBJS) -o $@ $(LDFLAGS)
@@ -48,9 +53,9 @@ $(BUILD_DIR)/%.c.o: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 # Build step for C++ source
-$(BUILD_DIR)/%.cpp.o: %.cpp
-	mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+#$(BUILD_DIR)/%.cpp.o: %.cpp
+#	mkdir -p $(dir $@)
+#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 # Clean up things
 .PHONY: clean

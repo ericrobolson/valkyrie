@@ -3,7 +3,9 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "C:/cygwin64_dev_lib/include/",
+                "${workspaceFolder}/neo/SDL2-devel-2.0.14-mingw/SDL2-2.0.14/x86_64-w64-mingw32/include/SDL2"
             ],
             "defines": [
                 "_DEBUG",
