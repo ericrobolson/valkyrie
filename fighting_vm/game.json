@@ -1,0 +1,8 @@
+{
+    "schema_type": "Character",
+    "name": "BowserClone",
+    "info": {
+        "weight": 135,
+        "gravity": 0125,
+    }
+}

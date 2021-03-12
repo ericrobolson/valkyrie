@@ -1,5 +1,5 @@
 [package]
-name = "core_renderer"
+name = "fighting_vm"
 version = "0.1.0"
 authors = ["Eric Olson <eric.rob.olson@gmail.com>"]
 edition = "2018"
@@ -7,5 +7,3 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-core_math = {path = "../core_math"}
-core_data_structures = {path = "../core_data_structures"}

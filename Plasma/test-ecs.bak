@@ -1,0 +1,21 @@
+#lang racket
+
+
+
+(define test-ecs
+  '(
+    (component Velocity (x:i32 y:i32))
+    (component Position (x:i32 y:i32))
+    (component Health (hp:i32))
+    (component Input (mask:u16))
+    (system Movement (Input:r Velocity:w)
+            (do-some-stuff))
+    (system Position (Velocity:r Position:w)
+            (rust ##
+                  position.x += velocity.x;
+                  position.y += velocity.y;
+                  ##))
+
+    ))
+
+test-ecs

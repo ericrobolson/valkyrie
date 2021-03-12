@@ -1,0 +1,6 @@
+*.exe
+hello
+bin/
+obj/
+build/
+build_win/
