@@ -1,0 +1,46 @@
+struct Players{
+    name: String,
+    id: int
+}
+
+struct CharacterSheet{
+    // Stats
+    name: String,
+    weight: uint,
+    gravity_percentage: uint,
+    walk_speed: uint,
+    run_speed: uint,
+    air_move_speed: uint,
+    fall_speed: uint,
+    fast_fall_speed: uint,
+    jump_velocity: uint,
+    num_jumps: uint,
+    states: [StateData]
+}
+
+struct StateData {
+}
+
+struct Frame{
+    id: uint,
+    hit_boxes: [Aabb],
+    hurt_boxes: [Aabb],
+    push_boxes: [Aabb],
+    grab_boxes: [Aabb],
+
+    tick_duration: uint,
+    
+    next_id: uint,
+    
+    on_hit_next_id: uint?,
+    on_grab_next_id: uint?,
+    on_push_next_id: uint?,
+    
+}
+
+
+struct GameState{
+    players: [Player],
+    characters: [CharacterSheet],
+    player_characters: [Character]
+}

@@ -1,5 +1,5 @@
 [package]
-name = "ymir_compiler"
+name = "fighting_vm"
 version = "0.1.0"
 authors = ["Eric Olson <eric.rob.olson@gmail.com>"]
 edition = "2018"
